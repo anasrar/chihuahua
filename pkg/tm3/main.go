@@ -39,7 +39,7 @@ func (self *Tm3) unmarshal(source string, stream io.ReadWriteSeeker) error {
 	}
 
 	if signature != Signature {
-		return fmt.Errorf("TIM3 signature not match")
+		return fmt.Errorf("TM3 signature not match")
 	}
 
 	if _, err := buffer.ReadUint32LE(stream, &self.EntryTotal); err != nil {
