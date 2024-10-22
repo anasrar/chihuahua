@@ -10,6 +10,7 @@ import (
 	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
 	"github.com/anasrar/chihuahua/pkg/buffer"
 	"github.com/anasrar/chihuahua/pkg/tim2"
+	"github.com/anasrar/chihuahua/pkg/tim3"
 	"github.com/anasrar/chihuahua/pkg/utils"
 	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -27,6 +28,31 @@ func drop(filePath string) error {
 	}
 
 	switch signature {
+	case tim3.Signature:
+		tim := tim3.New()
+		if err := tim3.FromPath(tim, filePath); err != nil {
+			return err
+		}
+
+		buf = bytes.NewBuffer([]byte{})
+		if err := png.Encode(buf, tim3.PictureToImage(tim.Pictures[0])); err != nil {
+			return err
+		}
+
+		img := rl.LoadImageFromMemory(".png", buf.Bytes(), int32(buf.Len()))
+		for _, tex := range textures {
+			rl.UnloadTexture(tex)
+		}
+		textures = []rl.Texture2D{rl.LoadTextureFromImage(img)}
+		rl.UnloadImage(img)
+
+		matrix = rl.MatrixTranslate(
+			(width/2)-(float32(textures[0].Width)/2),
+			(height/2)-(float32(textures[0].Height)/2),
+			0,
+		)
+
+		canConvert = true
 	case tim2.Signature:
 		tim := tim2.New()
 		if err := tim2.FromPath(tim, filePath); err != nil {
