@@ -45,7 +45,12 @@ func drop(filePath string) error {
 		textures = []rl.Texture2D{rl.LoadTextureFromImage(img)}
 		rl.UnloadImage(img)
 
-		position = rl.NewVector2((width/2)-(float32(textures[0].Width)/2), (height/2)-(float32(textures[0].Height)/2))
+		matrix = rl.MatrixTranslate(
+			(width/2)-(float32(textures[0].Width)/2),
+			(height/2)-(float32(textures[0].Height)/2),
+			0,
+		)
+
 		canConvert = true
 	default:
 		return fmt.Errorf("Format not supported")
@@ -79,22 +84,63 @@ func main() {
 		}
 
 		if rl.IsMouseButtonDown(1) {
-			position = rl.Vector2Add(rl.GetMouseDelta(), position)
+			positionX := rl.GetMouseDelta().X
+			positionY := rl.GetMouseDelta().Y
+			matrix = rl.MatrixMultiply(
+				matrix,
+				rl.MatrixTranslate(positionX, positionY, 0),
+			)
 		}
 
-		wheel := rl.GetMouseWheelMoveV().Y * 0.25
+		wheel := rl.GetMouseWheelMoveV().Y
 		if wheel != 0 {
-			scale += wheel
-			scale = max(scale, 0.2)
+			scale := float32(0)
+			switch wheel {
+			case 1:
+				scale = 6.0 / 5.0
+			case -1:
+				scale = 5.0 / 6.0
+			}
+			positionX := rl.GetMousePosition().X
+			positionY := rl.GetMousePosition().Y
+			matrix = rl.MatrixMultiply(
+				matrix,
+				rl.MatrixTranslate(-positionX, -positionY, 0),
+			)
+			matrix = rl.MatrixMultiply(
+				matrix,
+				rl.MatrixScale(scale, scale, 1),
+			)
+			matrix = rl.MatrixMultiply(
+				matrix,
+				rl.MatrixTranslate(positionX, positionY, 0),
+			)
 		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(background)
 
+		rl.BeginMode2D(camera)
+
 		for _, tex := range textures {
-			rl.DrawRectangleLinesEx(rl.NewRectangle(position.X, position.Y, float32(tex.Width)*scale, float32(tex.Height)*scale), 1, rl.Gray)
-			rl.DrawTextureEx(tex, position, 0, scale, rl.White)
+			translate := rl.NewVector3(0, 0, 0)
+			rotation := rl.NewQuaternion(0, 0, 0, 1)
+			scale := rl.NewVector3(1, 1, 1)
+
+			utils.MatrixDecompose(matrix, &translate, &rotation, &scale)
+
+			rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(tex.Width)*scale.X, float32(tex.Height)*scale.Y), 1, rl.Gray)
+
+			rl.PushMatrix()
+			rl.Translatef(translate.X, translate.Y, 0)
+			rl.Scalef(scale.X, scale.Y, 1)
+
+			rl.DrawTexture(tex, 0, 0, rl.White)
+
+			rl.PopMatrix()
 		}
+
+		rl.EndMode2D()
 
 		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
 
@@ -126,9 +172,12 @@ func main() {
 
 		if raygui.Button(rl.NewRectangle(width-116, height-40, 108, 32), "Reset View") {
 			for _, tex := range textures {
-				position = rl.NewVector2((width/2)-(float32(tex.Width)/2), (height/2)-(float32(tex.Height)/2))
+				matrix = rl.MatrixTranslate(
+					(width/2)-(float32(tex.Width)/2),
+					(height/2)-(float32(tex.Height)/2),
+					0,
+				)
 			}
-			scale = 1
 		}
 
 		rl.EndDrawing()

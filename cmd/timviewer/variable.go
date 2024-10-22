@@ -17,7 +17,7 @@ var background = rl.NewColor(0x12, 0x12, 0x12, 0xFF)
 
 var buf = bytes.NewBuffer([]byte{})
 var textures = []rl.Texture2D{}
-var position = rl.NewVector2(0, 0)
-var scale = float32(1)
+var camera = rl.NewCamera2D(rl.Vector2Zero(), rl.Vector2Zero(), 0, 1)
+var matrix = rl.MatrixIdentity()
 
 var canConvert = false
