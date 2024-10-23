@@ -4,26 +4,40 @@ import "fmt"
 
 type ClutType uint8
 
-func (self ClutType) String() string {
-	format := "Unknown"
+func (self ClutType) Format() ImageType {
 	switch self & 0x1F {
 	case 0:
-		format = "None"
+		return ImageTypeNone
 	case 1:
-		format = ImageType16BitColor.String()
+		return ImageType16BitColor
 	case 2:
-		format = ImageType24BitColor.String()
+		return ImageType24BitColor
 	case 3:
-		format = ImageType32BitColor.String()
+		return ImageType32BitColor
+	default:
+		return ImageTypeNone
 	}
+}
 
-	storage := "Unknown"
+func (self ClutType) CompoundMode() bool {
+	return ((self >> 7) & 0x1) == 1
+}
+
+func (self ClutType) StorageMode() ClutStorageMode {
 	switch self >> 6 & 0x1 {
 	case 0:
-		storage = "CSM1"
+		return ClutStorageMode1
 	case 1:
-		storage = "CSM2"
+		return ClutStorageMode2
+	default:
+		return ClutStorageMode1
 	}
+}
 
-	return fmt.Sprintf("Format: %s, Storage: %s", format, storage)
+func (self ClutType) String() string {
+	format := self.Format()
+
+	storage := self.StorageMode()
+
+	return fmt.Sprintf("Format: %s, Compound Mode: %v, Storage: %s", format, self.CompoundMode(), storage)
 }
