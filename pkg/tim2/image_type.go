@@ -3,6 +3,7 @@ package tim2
 type ImageType uint8
 
 const (
+	ImageTypeNone        ImageType = 0x00
 	ImageType16BitColor  ImageType = 0x01
 	ImageType24BitColor  ImageType = 0x02
 	ImageType32BitColor  ImageType = 0x03
@@ -12,6 +13,8 @@ const (
 
 func (self ImageType) String() string {
 	switch self {
+	case ImageTypeNone:
+		return "None"
 	case ImageType16BitColor:
 		return "16 Bit Color"
 	case ImageType24BitColor:
