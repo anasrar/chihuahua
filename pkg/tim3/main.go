@@ -160,6 +160,19 @@ func (self *Tim3) unmarshal(stream io.ReadWriteSeeker) error {
 			)
 		}
 
+		if picture.ClutColors >= 32 {
+			twiddle := []*color.RGBA{}
+
+			for i := 0; i < int(picture.ClutColors); i += 32 {
+				twiddle = append(twiddle, picture.ClutData[i+0:i+8]...)
+				twiddle = append(twiddle, picture.ClutData[i+16:i+24]...)
+				twiddle = append(twiddle, picture.ClutData[i+8:i+16]...)
+				twiddle = append(twiddle, picture.ClutData[i+24:i+32]...)
+			}
+
+			picture.ClutData = twiddle
+		}
+
 		self.Pictures = append(self.Pictures, &picture)
 	}
 
