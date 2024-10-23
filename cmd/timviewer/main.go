@@ -34,6 +34,8 @@ func drop(filePath string) error {
 			return err
 		}
 
+		picture = tim.Pictures[0]
+
 		buf = bytes.NewBuffer([]byte{})
 		if err := png.Encode(buf, tim3.PictureToImage(tim.Pictures[0])); err != nil {
 			return err
@@ -58,6 +60,8 @@ func drop(filePath string) error {
 		if err := tim2.FromPath(tim, filePath); err != nil {
 			return err
 		}
+
+		picture = tim.Pictures[0]
 
 		buf = bytes.NewBuffer([]byte{})
 		if err := png.Encode(buf, tim2.PictureToImage(tim.Pictures[0])); err != nil {
@@ -167,6 +171,28 @@ func main() {
 		}
 
 		rl.EndMode2D()
+
+		if picture != nil {
+			rl.DrawTextEx(
+				rayguistyle.DefaultFont,
+				fmt.Sprintf(
+					"%dx%d\n%s\n%s\nClut Colors %d",
+					picture.ImageWidth,
+					picture.ImageHeight,
+					picture.ClutType,
+					picture.ImageType,
+					picture.ClutColors,
+				),
+				rl.NewVector2(8, 8),
+				16,
+				0,
+				rl.White,
+			)
+
+			for i, c := range picture.ClutData {
+				rl.DrawRectangle(int32(i%8*8)+8, int32(i/8*8)+78, 8, 8, *c)
+			}
+		}
 
 		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
 
