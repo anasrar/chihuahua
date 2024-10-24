@@ -68,9 +68,11 @@ func drop(filePath string) error {
 
 func gui() {
 	rl.InitWindow(int32(width), int32(height), "DAT Packer")
+	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
 	rayguistyle.Load()
+	defer rayguistyle.Unload()
 
 	for !rl.WindowShouldClose() {
 		if rl.IsWindowResized() {
@@ -83,6 +85,7 @@ func gui() {
 
 		if rl.IsFileDropped() {
 			filePath := rl.LoadDroppedFiles()[0]
+			defer rl.UnloadDroppedFiles()
 
 			if err := drop(filePath); err != nil {
 				metadataPath = ""
@@ -93,8 +96,6 @@ func gui() {
 				canUnpack = true
 				canCancel = false
 			}
-
-			rl.UnloadDroppedFiles()
 		}
 
 		rl.BeginDrawing()
@@ -210,7 +211,4 @@ func gui() {
 		rl.EndDrawing()
 
 	}
-	rayguistyle.Unload()
-
-	rl.CloseWindow()
 }

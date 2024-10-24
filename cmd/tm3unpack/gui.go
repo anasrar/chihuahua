@@ -49,9 +49,11 @@ func clearLog() {
 
 func gui() {
 	rl.InitWindow(int32(width), int32(height), "TM3 Unpacker")
+	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
 	rayguistyle.Load()
+	defer rayguistyle.Unload()
 
 	for !rl.WindowShouldClose() {
 		if rl.IsWindowResized() {
@@ -64,6 +66,7 @@ func gui() {
 
 		if rl.IsFileDropped() {
 			filePath := rl.LoadDroppedFiles()[0]
+			defer rl.UnloadDroppedFiles()
 
 			tim := tm3.New()
 			if err := tm3.FromPath(tim, filePath); err != nil {
@@ -80,8 +83,6 @@ func gui() {
 				canUnpack = true
 				canCancel = false
 			}
-
-			rl.UnloadDroppedFiles()
 		}
 
 		rl.BeginDrawing()
@@ -197,7 +198,4 @@ func gui() {
 		rl.EndDrawing()
 
 	}
-	rayguistyle.Unload()
-
-	rl.CloseWindow()
 }

@@ -219,9 +219,11 @@ func convert2png() {
 
 func main() {
 	rl.InitWindow(int32(width), int32(height), "TIM Viewer")
+	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
 	rayguistyle.Load()
+	defer rayguistyle.Unload()
 
 	for !rl.WindowShouldClose() {
 		if rl.IsWindowResized() {
@@ -233,14 +235,13 @@ func main() {
 
 		if rl.IsFileDropped() {
 			filePath := rl.LoadDroppedFiles()[0]
+			defer rl.UnloadDroppedFiles()
 
 			if err := drop(filePath); err != nil {
 				log.Println(err)
 			} else {
 				timPath = filePath
 			}
-
-			rl.UnloadDroppedFiles()
 		}
 
 		if rl.IsMouseButtonDown(1) {
@@ -400,11 +401,7 @@ func main() {
 		rl.EndDrawing()
 
 	}
-	rayguistyle.Unload()
-
 	for _, entry := range entries {
 		rl.UnloadTexture(entry.Texture)
 	}
-
-	rl.CloseWindow()
 }
