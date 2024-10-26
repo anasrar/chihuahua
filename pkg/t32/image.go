@@ -1,9 +1,7 @@
 package t32
 
 import (
-	"bytes"
 	"image"
-	"log"
 
 	graphicsynthesizer "github.com/anasrar/chihuahua/pkg/graphic_synthesizer"
 )
@@ -16,15 +14,8 @@ func T32ToImage(t32 *T32) *image.NRGBA {
 	copy(data, t32.ImageData)
 
 	indices := []byte{}
-	buf := bytes.NewReader(data)
-
 	for i := 0; i < dataSize; i += 128 * 64 {
-		chunk := make([]byte, 128*64)
-
-		if _, err := buf.Read(chunk); err != nil {
-			log.Println(err)
-		}
-
+		chunk := data[i : i+8192]
 		chunk = graphicsynthesizer.Unswizzle8(chunk, 128, 64)
 		indices = append(indices, chunk...)
 	}
