@@ -122,7 +122,7 @@ func drop(filePath string) error {
 
 		for i, entry := range tm.Entries {
 			tim := tim3.New()
-			if err := tim3.FromPathWithOffsetSize(tim, filePath, entry.Offset); err != nil {
+			if err := tim3.FromPathWithOffset(tim, filePath, entry.Offset); err != nil {
 				return err
 			}
 

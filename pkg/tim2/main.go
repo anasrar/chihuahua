@@ -178,17 +178,17 @@ func (self *Tim2) unmarshal(stream io.ReadWriteSeeker) error {
 	return nil
 }
 
-func FromPathWithOffsetSize(tim2 *Tim2, filePath string, offset uint32) error {
+func FromPathWithOffset(tim *Tim2, filePath string, offset uint32) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	tim2.Offset = offset
-	return tim2.unmarshal(file)
+	tim.Offset = offset
+	return tim.unmarshal(file)
 }
 
-func FromPath(dat *Tim2, filePath string) error {
-	return FromPathWithOffsetSize(dat, filePath, 0)
+func FromPath(tim *Tim2, filePath string) error {
+	return FromPathWithOffset(tim, filePath, 0)
 }

@@ -304,18 +304,18 @@ func New() *Tm3 {
 	}
 }
 
-func FromPathWithOffsetSize(dat *Tm3, filePath string, offset uint32, size uint32) error {
+func FromPathWithOffsetSize(tm3 *Tm3, filePath string, offset uint32, size uint32) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	dat.Offset = offset
-	dat.Size = size
-	return dat.unmarshal(filePath, file)
+	tm3.Offset = offset
+	tm3.Size = size
+	return tm3.unmarshal(filePath, file)
 }
 
-func FromPath(dat *Tm3, filePath string) error {
-	return FromPathWithOffsetSize(dat, filePath, 0, 0)
+func FromPath(tm3 *Tm3, filePath string) error {
+	return FromPathWithOffsetSize(tm3, filePath, 0, 0)
 }
