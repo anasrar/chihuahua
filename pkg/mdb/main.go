@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Signature uint32  = 0x334D4954
+	Signature uint32  = 0x0062646D
 	RoomScale float32 = 0.01
 )
 
