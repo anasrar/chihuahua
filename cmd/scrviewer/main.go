@@ -95,6 +95,8 @@ func drop(filePath string) error {
 			}
 		}
 
+		modelContentRectangle.Height = float32(24*len(models)) + 4
+
 		scrPath = filePath
 	case tm3.Signature:
 		tm := tm3.New()
@@ -221,14 +223,54 @@ func main() {
 
 		rl.BeginMode3D(camera)
 
-		for _, item := range models {
-			rl.DrawModel(*item.Model, rl.NewVector3(0, 0, 0), 1, rl.White)
+		for _, model := range models {
+			if model.Render {
+				rl.DrawModel(*model.Model, rl.NewVector3(0, 0, 0), 1, rl.White)
+			}
 		}
 		rl.DrawGrid(4, 0.5)
 
 		rl.EndMode3D()
 
-		// TODO: filter render
+		raygui.ScrollPanel(
+			modelRectangle,
+			"",
+			modelContentRectangle,
+			&modelScroll,
+			&modelView,
+		)
+
+		// rl.DrawRectangle(
+		// 	int32(modelRectangle.X+modelScroll.X),
+		// 	int32(modelRectangle.Y+modelScroll.Y),
+		// 	int32(modelContentRectangle.Width),
+		// 	int32(modelContentRectangle.Height),
+		// 	rl.Fade(rl.Red, 0.1),
+		// )
+
+		rl.BeginScissorMode(
+			int32(modelView.X),
+			int32(modelView.Y),
+			int32(modelView.Width),
+			int32(modelView.Height),
+		)
+
+		{
+			y := modelRectangle.Y + modelScroll.Y
+			for i, model := range models {
+				rect := rl.NewRectangle(12, (24*float32(i))+4+y, 24, 24)
+				inside := rl.CheckCollisionRecs(rect, modelRectangle)
+
+				if inside {
+					check := rl.NewRectangle(12, (24*float32(i))+4+y, 14, 14)
+					r := rl.GetCollisionRec(check, modelRectangle)
+					model.Render = raygui.CheckBox(r, model.Name, model.Render)
+				}
+			}
+		}
+
+		rl.EndScissorMode()
+
 		// TODO: texture shift
 		// TODO: show bones
 		// TODO: convert to gltf

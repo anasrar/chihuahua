@@ -32,3 +32,8 @@ var tm3PreviewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)
 var tm3PreviewContentRectangle = rl.NewRectangle(0, 0, 42, 0)
 var tm3PreviewScroll = rl.NewVector2(0, 0)
 var tm3PreviewView = rl.NewRectangle(0, 0, 0, 0)
+
+var modelRectangle = rl.NewRectangle(8, 8, 182, 202)
+var modelContentRectangle = rl.NewRectangle(0, 0, 162, 0)
+var modelScroll = rl.NewVector2(0, 0)
+var modelView = rl.NewRectangle(0, 0, 0, 0)

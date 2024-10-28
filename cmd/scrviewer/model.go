@@ -6,6 +6,7 @@ type Model struct {
 	Name    string
 	Model   *rl.Model
 	Texture int
+	Render  bool
 }
 
 func NewModel(name string, model *rl.Model, texture int) *Model {
@@ -13,5 +14,6 @@ func NewModel(name string, model *rl.Model, texture int) *Model {
 		Name:    name,
 		Model:   model,
 		Texture: texture,
+		Render:  true,
 	}
 }
