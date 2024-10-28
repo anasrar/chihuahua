@@ -23,6 +23,8 @@ var camera = rl.NewCamera3D(
 var textureDefault rl.Texture2D
 var textures = map[int]*Texture{}
 var textureIndices = []int{}
+var textureTotal = 0
+var textureShift = 0
 
 var models = []*Model{}
 

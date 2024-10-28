@@ -98,6 +98,7 @@ func drop(filePath string) error {
 		modelContentRectangle.Height = float32(24*len(models)) + 4
 
 		scrPath = filePath
+		textureShift = 0
 	case tm3.Signature:
 		tm := tm3.New()
 		if err := tm3.FromPath(tm, filePath); err != nil {
@@ -110,6 +111,7 @@ func drop(filePath string) error {
 		}
 
 		textureIndices = []int{}
+		textureTotal = int(tm.EntryTotal)
 
 		for i, entry := range tm.Entries {
 			tim := tim3.New()
@@ -142,6 +144,7 @@ func drop(filePath string) error {
 		}
 
 		tm3Path = filePath
+		textureShift = 0
 	default:
 		return fmt.Errorf("Format not supported")
 	}
@@ -271,7 +274,38 @@ func main() {
 
 		rl.EndScissorMode()
 
-		// TODO: texture shift
+		{
+			if textureTotal == 0 {
+				raygui.Disable()
+			}
+
+			if raygui.Button(rl.NewRectangle(8, 218, 87, 32), "Shift -1") {
+				textureShift = (textureShift - 1) % textureTotal
+				for _, model := range models {
+					if texture, found := textures[model.Texture+textureShift]; found {
+						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
+					} else {
+						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, textureDefault)
+					}
+				}
+			}
+
+			if raygui.Button(rl.NewRectangle(103, 218, 87, 32), "Shift +1") {
+				textureShift = (textureShift + 1) % textureTotal
+				for _, model := range models {
+					if texture, found := textures[model.Texture+textureShift]; found {
+						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
+					} else {
+						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, textureDefault)
+					}
+				}
+			}
+
+			if textureTotal == 0 {
+				raygui.Enable()
+			}
+		}
+
 		// TODO: show bones
 		// TODO: convert to gltf
 
