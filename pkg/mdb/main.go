@@ -337,6 +337,15 @@ func New() *Mdb {
 	}
 }
 
+func FromStreamWithOffset(mdb *Mdb, stream io.ReadWriteSeeker, offset uint32) error {
+	mdb.Offset = offset
+	return mdb.unmarshal(stream)
+}
+
+func FromStream(mdb *Mdb, stream io.ReadWriteSeeker) error {
+	return FromStreamWithOffset(mdb, stream, 0)
+}
+
 func FromPathWithOffset(mdb *Mdb, filePath string, offset uint32) error {
 	file, err := os.Open(filePath)
 	if err != nil {
