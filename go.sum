@@ -8,6 +8,8 @@ github.com/gen2brain/raylib-go/raylib v0.0.0-20231118125650-a1c890e8cbfc h1:86mV
 github.com/gen2brain/raylib-go/raylib v0.0.0-20231118125650-a1c890e8cbfc/go.mod h1:OrILUkoha5TCD4Btbw0YPoxe1sQj3q8xpFBqAoeRWyo=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/qmuntal/gltf v0.27.0 h1:A6E5F9Efg/G8ke4OfzJtSDfaTKwXRx4OYCoXfslF534=
+github.com/qmuntal/gltf v0.27.0/go.mod h1:YoXZOt0Nc0kIfSKOLZIRoV4FycdC+GzE+3JgiAGYoMs=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
