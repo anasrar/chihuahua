@@ -1,0 +1,62 @@
+name: Nightly Build
+on:
+  workflow_dispatch:
+
+jobs:
+  builds:
+    name: Build & Release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: |
+          sudo apt-get install -y gcc-mingw-w64 libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.1"
+
+      - name: Build
+        run: |
+          mdkir output
+          go build -o output/datpack_linux --ldflags="-s -w" cmd/datpack/*.go
+          go build -o output/datunpack_linux --ldflags="-s -w" cmd/datunpack/*.go
+          go build -o output/roomviewer_linux --ldflags="-s -w" cmd/roomviewer/*.go
+          go build -o output/scrviewer_linux --ldflags="-s -w" cmd/scrviewer/*.go
+          go build -o output/t32viewer_linux --ldflags="-s -w" cmd/t32viewer/*.go
+          go build -o output/timviewer_linux --ldflags="-s -w" cmd/timviewer/*.go
+          go build -o output/tm3pack_linux --ldflags="-s -w" cmd/tm3pack/*.go
+          go build -o output/tm3unpack_linux --ldflags="-s -w" cmd/tm3unpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datpack_win --ldflags="-s -w" cmd/datpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datunpack_win --ldflags="-s -w" cmd/datunpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/roomviewer_win --ldflags="-s -w" cmd/roomviewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/scrviewer_win --ldflags="-s -w" cmd/scrviewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/t32viewer_win --ldflags="-s -w" cmd/t32viewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/timviewer_win --ldflags="-s -w" cmd/timviewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3pack_win --ldflags="-s -w" cmd/tm3pack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3unpack_win --ldflags="-s -w" cmd/tm3unpack/*.go
+
+      - name: Create Release and Upload Assets
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          tag: nightly
+          prerelease: true
+          name: nightly
+          artifacts: "output/*"
+
+  del_runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 3
