@@ -22,7 +22,7 @@ jobs:
 
       - name: Build
         run: |
-          mdkir output
+          mkdir output
           go build -o output/datpack_linux --ldflags="-s -w" cmd/datpack/*.go
           go build -o output/datunpack_linux --ldflags="-s -w" cmd/datunpack/*.go
           go build -o output/roomviewer_linux --ldflags="-s -w" cmd/roomviewer/*.go
