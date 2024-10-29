@@ -28,6 +28,11 @@ var textureShift = 0
 
 var models = []*Model{}
 
+var showBones = false
+var boneTree = NewBoneNode(0, 0, 0)
+var bones = []*BoneNode{}
+var boneRender rl.RenderTexture2D
+
 var background = rl.NewColor(0x12, 0x12, 0x12, 0xFF)
 
 var tm3PreviewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)

@@ -97,6 +97,21 @@ func drop(filePath string) error {
 
 		modelContentRectangle.Height = float32(24*len(models)) + 4
 
+		boneTree = NewBoneNode(0, 0, 0)
+		bones = []*BoneNode{
+			boneTree,
+		}
+
+		for _, bone := range s.Nodes[0].Mdb.Bones {
+			node := NewBoneNode(bone.X, bone.Y, bone.Z)
+			bones = append(bones, node)
+
+			bones[bone.Parent].Children = append(
+				bones[bone.Parent].Children,
+				node,
+			)
+		}
+
 		scrPath = filePath
 		textureShift = 0
 	case tm3.Signature:
@@ -169,12 +184,18 @@ func main() {
 	rl.EnableColorBlend()
 	rl.EnableDepthMask()
 
+	boneRender = rl.LoadRenderTexture(int32(width), int32(height))
+	defer rl.UnloadRenderTexture(boneRender)
+
 	for !rl.WindowShouldClose() {
 		if rl.IsWindowResized() {
 			width = float32(rl.GetScreenWidth())
 			height = float32(rl.GetScreenHeight())
 
 			tm3PreviewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)
+
+			rl.UnloadRenderTexture(boneRender)
+			boneRender = rl.LoadRenderTexture(int32(width), int32(height))
 		}
 
 		if rl.IsFileDropped() {
@@ -234,6 +255,18 @@ func main() {
 		rl.DrawGrid(4, 0.5)
 
 		rl.EndMode3D()
+
+		// TODO: refactor using raylib model bones, https://www.raylib.com/examples/models/loader.html?name=models_loading_m3d
+		if showBones {
+			rl.BeginTextureMode(boneRender)
+			rl.ClearBackground(rl.NewColor(0, 0, 0, 0))
+			rl.BeginMode3D(camera)
+			DrawBoneTree(boneTree)
+			rl.EndMode3D()
+			rl.EndTextureMode()
+
+			rl.DrawTextureRec(boneRender.Texture, rl.NewRectangle(0, 0, width, -height), rl.Vector2Zero(), rl.White)
+		}
 
 		raygui.ScrollPanel(
 			modelRectangle,
@@ -306,7 +339,8 @@ func main() {
 			}
 		}
 
-		// TODO: show bones
+		showBones = raygui.CheckBox(rl.NewRectangle(8, 258, 14, 14), "Show Bones", showBones)
+
 		// TODO: convert to gltf
 
 		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
