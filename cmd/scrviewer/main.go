@@ -256,6 +256,9 @@ func main() {
 
 				if applyScrTransform {
 					rl.Translatef(model.Translation.X, model.Translation.Y, model.Translation.Z)
+					rl.Rotatef(model.Rotation.X, 1, 0, 0)
+					rl.Rotatef(model.Rotation.Y, 0, 1, 0)
+					rl.Rotatef(model.Rotation.Z, 0, 0, 1)
 					rl.Scalef(model.Scale.X, model.Scale.Y, model.Scale.Z)
 				}
 
