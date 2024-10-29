@@ -90,6 +90,9 @@ func drop(filePath string) error {
 						name,
 						&model,
 						int(vb.Material),
+						node.Translation,
+						node.Rotation,
+						node.Scale,
 					),
 				)
 			}
@@ -249,7 +252,16 @@ func main() {
 
 		for _, model := range models {
 			if model.Render {
+				rl.PushMatrix()
+
+				if applyScrTransform {
+					rl.Translatef(model.Translation.X, model.Translation.Y, model.Translation.Z)
+					rl.Scalef(model.Scale.X, model.Scale.Y, model.Scale.Z)
+				}
+
 				rl.DrawModel(*model.Model, rl.NewVector3(0, 0, 0), 1, rl.White)
+
+				rl.PopMatrix()
 			}
 		}
 		rl.DrawGrid(4, 0.5)
@@ -340,6 +352,7 @@ func main() {
 		}
 
 		showBones = raygui.CheckBox(rl.NewRectangle(8, 258, 14, 14), "Show Bones", showBones)
+		applyScrTransform = raygui.CheckBox(rl.NewRectangle(8, 282, 14, 14), "Apply SCR Transform", applyScrTransform)
 
 		if scrPath == "" {
 			raygui.Disable()

@@ -26,6 +26,7 @@ var textureIndices = []int{}
 var textureTotal = 0
 var textureShift = 0
 
+var applyScrTransform = false
 var models = []*Model{}
 
 var showBones = false
