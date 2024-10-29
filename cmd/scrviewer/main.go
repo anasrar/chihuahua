@@ -341,7 +341,22 @@ func main() {
 
 		showBones = raygui.CheckBox(rl.NewRectangle(8, 258, 14, 14), "Show Bones", showBones)
 
-		// TODO: convert to gltf
+		if scrPath == "" {
+			raygui.Disable()
+		}
+		if raygui.Button(rl.NewRectangle(8, height-40, 132, 32), "Convert To GLTF") {
+			go func() {
+				log.Println("Convert to GLTF")
+				if err := scr.ConvertToGlft(scrPath, tm3Path, textureShift); err != nil {
+					log.Println(err)
+				} else {
+					log.Println("Convert done")
+				}
+			}()
+		}
+		if scrPath == "" {
+			raygui.Enable()
+		}
 
 		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
 
