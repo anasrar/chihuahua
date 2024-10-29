@@ -75,21 +75,49 @@ func (self *Scr) unmarshal(stream io.ReadWriteSeeker) error {
 		}
 
 		scaleX := float32(0)
-		if _, err := buffer.ReadFloat32BE(stream, &scaleX); err != nil {
+		if _, err := buffer.ReadFloat32LE(stream, &scaleX); err != nil {
 			return err
 		}
 
 		scaleY := float32(0)
-		if _, err := buffer.ReadFloat32BE(stream, &scaleY); err != nil {
+		if _, err := buffer.ReadFloat32LE(stream, &scaleY); err != nil {
 			return err
 		}
 
 		scaleZ := float32(0)
-		if _, err := buffer.ReadFloat32BE(stream, &scaleZ); err != nil {
+		if _, err := buffer.ReadFloat32LE(stream, &scaleZ); err != nil {
 			return err
 		}
 
-		// TODO: rotation and translation
+		rotationX := float32(0)
+		if _, err := buffer.ReadFloat32LE(stream, &rotationX); err != nil {
+			return err
+		}
+
+		rotationY := float32(0)
+		if _, err := buffer.ReadFloat32LE(stream, &rotationY); err != nil {
+			return err
+		}
+
+		rotationZ := float32(0)
+		if _, err := buffer.ReadFloat32LE(stream, &rotationZ); err != nil {
+			return err
+		}
+
+		translationX := float32(0)
+		if _, err := buffer.ReadFloat32LE(stream, &translationX); err != nil {
+			return err
+		}
+
+		translationY := float32(0)
+		if _, err := buffer.ReadFloat32LE(stream, &translationY); err != nil {
+			return err
+		}
+
+		translationZ := float32(0)
+		if _, err := buffer.ReadFloat32LE(stream, &translationZ); err != nil {
+			return err
+		}
 
 		var m mdb.Mdb
 		if err := mdb.FromStreamWithOffset(&m, stream, uint32(int32(offset)+mdbOffset)); err != nil {
@@ -102,6 +130,8 @@ func (self *Scr) unmarshal(stream io.ReadWriteSeeker) error {
 				&m,
 				name,
 				rl.NewVector3(scaleX, scaleY, scaleZ),
+				rl.NewVector3(rotationX, rotationY, rotationZ),
+				rl.NewVector3(translationX, translationY, translationZ),
 			),
 		)
 	}

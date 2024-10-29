@@ -7,7 +7,13 @@ struct Node {
   float scale_x;
   float scale_y;
   float scale_z;
-  padding[84]; // TODO: research this padding
+  float rotation_x;
+  float rotation_y;
+  float rotation_z;
+  float translation_x;
+  float translation_y;
+  float translation_z;
+  padding[60]; // TODO: research this padding
 };
 
 struct Scr {
