@@ -31,14 +31,14 @@ jobs:
           go build -o output/timviewer_linux --ldflags="-s -w" cmd/timviewer/*.go
           go build -o output/tm3pack_linux --ldflags="-s -w" cmd/tm3pack/*.go
           go build -o output/tm3unpack_linux --ldflags="-s -w" cmd/tm3unpack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datpack_win --ldflags="-s -w" cmd/datpack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datunpack_win --ldflags="-s -w" cmd/datunpack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/roomviewer_win --ldflags="-s -w" cmd/roomviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/scrviewer_win --ldflags="-s -w" cmd/scrviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/t32viewer_win --ldflags="-s -w" cmd/t32viewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/timviewer_win --ldflags="-s -w" cmd/timviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3pack_win --ldflags="-s -w" cmd/tm3pack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3unpack_win --ldflags="-s -w" cmd/tm3unpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datpack_win.exe --ldflags="-s -w" cmd/datpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datunpack_win.exe --ldflags="-s -w" cmd/datunpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3pack_win.exe --ldflags="-s -w" cmd/tm3pack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3unpack_win.exe --ldflags="-s -w" cmd/tm3unpack/*.go
 
       - name: Create Release and Upload Assets
         uses: ncipollo/release-action@v1.14.0
