@@ -27,6 +27,10 @@ Pack generic dat container, support CLI and GUI.
 
 Unpack generic dat container, support CLI and GUI.
 
+### modelviewer
+
+Model viewer for XXX.dat file except `evXXX.dat`, drag and drop `XXX.dat` file, support export as GLTF.
+
 ### roomviewer
 
 Room viewer for rXXX.dat file, drag and drop `rXXX.dat` file, support export as GLTF.
