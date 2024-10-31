@@ -25,6 +25,7 @@ jobs:
           mkdir output
           go build -o output/datpack_linux --ldflags="-s -w" cmd/datpack/*.go
           go build -o output/datunpack_linux --ldflags="-s -w" cmd/datunpack/*.go
+          go build -o output/modelviewer_linux --ldflags="-s -w" cmd/modelviewer/*.go
           go build -o output/roomviewer_linux --ldflags="-s -w" cmd/roomviewer/*.go
           go build -o output/scrviewer_linux --ldflags="-s -w" cmd/scrviewer/*.go
           go build -o output/t32viewer_linux --ldflags="-s -w" cmd/t32viewer/*.go
@@ -33,6 +34,7 @@ jobs:
           go build -o output/tm3unpack_linux --ldflags="-s -w" cmd/tm3unpack/*.go
           CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datpack_win.exe --ldflags="-s -w" cmd/datpack/*.go
           CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datunpack_win.exe --ldflags="-s -w" cmd/datunpack/*.go
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
           CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
           CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
           CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
