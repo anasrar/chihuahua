@@ -78,6 +78,9 @@ Using https://github.com/WerWolv/ImHex to analyze file format. There `pkg/*/*.he
 ```
 AKG: see pkg/akg/akg.hexpat.
 AKT: generic dat container, contain AKG.
+CMP: generic dat container, contain MOT.
+EFF: generic dat container, contain TBL and EMD.
+ENV: TIM2.
 MDB: bones, texture index, and vertex buffer.
 SCP: generic dat container, contain SCR and TM3.
 SCR: container for MDB, contain name and transform.
