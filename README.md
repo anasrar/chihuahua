@@ -76,14 +76,16 @@ Using https://github.com/WerWolv/ImHex to analyze file format. There `pkg/*/*.he
 ## File Format
 
 ```
-SCP: generic dat container, contain SCR and TM3.
-T32: texture UI.
+AKG: see pkg/akg/akg.hexpat.
+AKT: generic dat container, contain AKG.
 MDB: bones, texture index, and vertex buffer.
+SCP: generic dat container, contain SCR and TM3.
 SCR: container for MDB, contain name and transform.
+MOT: contain animation curve with bone target and channel.
+T32: texture UI.
 TIM2: PS2 texture format.
 TIM3: extend version PS2 texture format.
 TM3: TIM3 container.
-MOT: contain animation curve with bone target and channel.
 ```
 
 `TODO: add more file format`.
@@ -91,10 +93,12 @@ MOT: contain animation curve with bone target and channel.
 ## File Name Pattern
 
 ```
-orivia_X: TIM2 image texture on pause menu.
-rXXX: (stage) room data.
-plXX: playable character data.
+elXX: model for cutscene.
 idXX: generic dat contain UI stuff.
+olXX: object data (breakable, weapon).
+orivia_X: TIM2 image texture on pause menu.
+plXX: playable character data.
+rXXX: (stage) room data.
 ```
 
 `TODO: add more file name pattern`.
