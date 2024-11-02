@@ -55,9 +55,9 @@ func (self *Record) CurveToLinear(
 
 func (self *Record) CurveToHermite(
 	index int,
-	p0 [2]float32,
+	p0 *[2]float32,
 	m0 *float32,
-	p1 [2]float32,
+	p1 *[2]float32,
 	m1 *float32,
 ) error {
 	if index == int(self.CurveTotal-1) {
@@ -79,20 +79,18 @@ func (self *Record) CurveToHermite(
 	nextPosition := (position + positionDelta*float32(nextCurve.ControlPoint))
 	*m1 = (tangent0 + tangentDelta0*float32(currentCurve.ControlTangent0)) * TangentScale
 
-	p0[0] = 0
-	p0[1] = currentPosition
-	p1[0] = float32(nextCurve.FrameDelta)
-	p1[1] = nextPosition
+	*p0 = [2]float32{0, currentPosition}
+	*p1 = [2]float32{float32(nextCurve.FrameDelta), nextPosition}
 
 	return nil
 }
 
 func (self *Record) CurveToBezier(
 	index int,
-	p0 [2]float32,
-	p1 [2]float32,
-	p2 [2]float32,
-	p3 [2]float32,
+	p0 *[2]float32,
+	p1 *[2]float32,
+	p2 *[2]float32,
+	p3 *[2]float32,
 ) error {
 	m0 := float32(0)
 	m1 := float32(0)
@@ -104,11 +102,8 @@ func (self *Record) CurveToBezier(
 	m0t := m0 / 3
 	m1t := m1 / 3
 
-	p1[0] = p0[0] + m0t
-	p1[1] = p0[1] + m0t
-
-	p2[0] = p3[0] - m1t
-	p2[1] = p3[1] - m1t
+	*p1 = [2]float32{p0[0] + m0t, p0[1] + m0t}
+	*p2 = [2]float32{p3[0] - m1t, p3[1] - m1t}
 
 	return nil
 }
