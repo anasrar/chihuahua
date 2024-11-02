@@ -7,7 +7,6 @@ import (
 
 	"github.com/anasrar/chihuahua/pkg/buffer"
 	"github.com/anasrar/chihuahua/pkg/mdb"
-	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
@@ -129,9 +128,9 @@ func (self *Scr) unmarshal(stream io.ReadWriteSeeker) error {
 			NewNode(
 				&m,
 				name,
-				rl.NewVector3(scaleX, scaleY, scaleZ),
-				rl.NewVector3(rotationX, rotationY, rotationZ),
-				rl.NewVector3(translationX, translationY, translationZ),
+				[3]float32{scaleX, scaleY, scaleZ},
+				[3]float32{rotationX, rotationY, rotationZ},
+				[3]float32{translationX, translationY, translationZ},
 			),
 		)
 	}

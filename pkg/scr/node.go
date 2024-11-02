@@ -2,23 +2,22 @@ package scr
 
 import (
 	"github.com/anasrar/chihuahua/pkg/mdb"
-	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type Node struct {
 	Mdb         *mdb.Mdb   `json:"mdb"`
 	Name        string     `json:"name"`
-	Translation rl.Vector3 `json:"translation"`
-	Rotation    rl.Vector3 `json:"rotation"`
-	Scale       rl.Vector3 `json:"scale"`
+	Translation [3]float32 `json:"translation"`
+	Rotation    [3]float32 `json:"rotation"`
+	Scale       [3]float32 `json:"scale"`
 }
 
 func NewNode(
 	m *mdb.Mdb,
 	name string,
-	scale rl.Vector3,
-	rotation rl.Vector3,
-	translation rl.Vector3,
+	scale [3]float32,
+	rotation [3]float32,
+	translation [3]float32,
 ) *Node {
 	return &Node{
 		Mdb:         m,
