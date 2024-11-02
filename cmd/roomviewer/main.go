@@ -202,18 +202,18 @@ func main() {
 				obj.RenderLabel = rl.GetRayCollisionBox(
 					ray,
 					rl.NewBoundingBox(
-						rl.NewVector3(obj.Translation[0]-0.2, obj.Translation[1]-0.2, obj.Translation[2]-0.2),
-						rl.NewVector3(obj.Translation[0]+0.2, obj.Translation[1]+0.2, obj.Translation[2]+0.2),
+						rl.NewVector3(obj.Translation[0]-0.2, obj.Translation[1], obj.Translation[2]-0.2),
+						rl.NewVector3(obj.Translation[0]+0.2, obj.Translation[1]+0.4, obj.Translation[2]+0.2),
 					),
 				).Hit
 
-				rl.DrawCube(rl.NewVector3(obj.Translation[0], obj.Translation[1], obj.Translation[2]), 0.4, 0.4, 0.4, rl.Blue)
+				rl.DrawCube(rl.NewVector3(obj.Translation[0], obj.Translation[1]+0.2, obj.Translation[2]), 0.4, 0.4, 0.4, rl.Blue)
 			}
 		}
 
 		if showEnemies {
 			for _, enemy := range enemies {
-				rl.DrawCube(rl.NewVector3(enemy.Translation[0], enemy.Translation[1], enemy.Translation[2]), 0.4, 0.4, 0.4, rl.Red)
+				rl.DrawCube(rl.NewVector3(enemy.Translation[0], enemy.Translation[1]+0.2, enemy.Translation[2]), 0.4, 0.4, 0.4, rl.Red)
 			}
 		}
 
