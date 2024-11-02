@@ -97,6 +97,7 @@ TM3: TIM3 container.
 
 ```
 elXX: model for cutscene.
+emXX: enemy model.
 idXX: generic dat contain UI stuff.
 olXX: object data (breakable, weapon).
 orivia_X: TIM2 image texture on pause menu.
