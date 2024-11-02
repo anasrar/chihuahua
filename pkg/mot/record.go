@@ -3,7 +3,7 @@ package mot
 import (
 	"fmt"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/anasrar/chihuahua/pkg/utils"
 	"github.com/x448/float16"
 )
 
@@ -29,8 +29,8 @@ type Record struct {
 
 func (self *Record) CurveToLinear(
 	index int,
-	p0 *rl.Vector2,
-	p1 *rl.Vector2,
+	p0 [2]float32,
+	p1 [2]float32,
 ) error {
 	if index == int(self.CurveTotal-1) {
 		return fmt.Errorf("Index is last curve")
@@ -45,17 +45,19 @@ func (self *Record) CurveToLinear(
 	currentPosition := (position + positionDelta*float32(currentCurve.ControlPoint))
 	nextPosition := (position + positionDelta*float32(nextCurve.ControlPoint))
 
-	*p0 = rl.NewVector2(0, currentPosition)
-	*p1 = rl.NewVector2(float32(nextCurve.FrameDelta), nextPosition)
+	p0[0] = 0
+	p0[1] = currentPosition
+	p1[0] = float32(nextCurve.FrameDelta)
+	p1[1] = nextPosition
 
 	return nil
 }
 
 func (self *Record) CurveToHermite(
 	index int,
-	p0 *rl.Vector2,
+	p0 [2]float32,
 	m0 *float32,
-	p1 *rl.Vector2,
+	p1 [2]float32,
 	m1 *float32,
 ) error {
 	if index == int(self.CurveTotal-1) {
@@ -77,18 +79,20 @@ func (self *Record) CurveToHermite(
 	nextPosition := (position + positionDelta*float32(nextCurve.ControlPoint))
 	*m1 = (tangent0 + tangentDelta0*float32(currentCurve.ControlTangent0)) * TangentScale
 
-	*p0 = rl.NewVector2(0, currentPosition)
-	*p1 = rl.NewVector2(float32(nextCurve.FrameDelta), nextPosition)
+	p0[0] = 0
+	p0[1] = currentPosition
+	p1[0] = float32(nextCurve.FrameDelta)
+	p1[1] = nextPosition
 
 	return nil
 }
 
 func (self *Record) CurveToBezier(
 	index int,
-	p0 *rl.Vector2,
-	p1 *rl.Vector2,
-	p2 *rl.Vector2,
-	p3 *rl.Vector2,
+	p0 [2]float32,
+	p1 [2]float32,
+	p2 [2]float32,
+	p3 [2]float32,
 ) error {
 	m0 := float32(0)
 	m1 := float32(0)
@@ -97,8 +101,14 @@ func (self *Record) CurveToBezier(
 		return err
 	}
 
-	*p1 = rl.Vector2AddValue(rl.NewVector2(p1.X, p1.Y), m0/3)
-	*p2 = rl.Vector2SubtractValue(rl.NewVector2(p3.X, p3.Y), m1/3)
+	m0t := m0 / 3
+	m1t := m1 / 3
+
+	p1[0] = p0[0] + m0t
+	p1[1] = p0[1] + m0t
+
+	p2[0] = p3[0] - m1t
+	p2[1] = p3[1] - m1t
 
 	return nil
 }
@@ -110,10 +120,10 @@ func (self *Record) QuantizeLinear(frameTotal uint16) []float32 {
 	for i := 0; i < int(self.CurveTotal-1); i++ {
 		nextCurve := self.Curves[i+1]
 
-		p0 := rl.Vector2Zero()
-		p1 := rl.Vector2Zero()
+		p0 := [2]float32{0, 0}
+		p1 := [2]float32{0, 0}
 
-		if err := self.CurveToLinear(i, &p0, &p1); err != nil {
+		if err := self.CurveToLinear(i, p0, p1); err != nil {
 			continue
 		}
 
@@ -122,7 +132,7 @@ func (self *Record) QuantizeLinear(frameTotal uint16) []float32 {
 		for j := float32(0); j < total; j++ {
 			result = append(
 				result,
-				rl.Lerp(p0.Y, p1.Y, j/total),
+				utils.Lerp(p0[1], p1[1], j/total),
 			)
 			frame++
 		}
