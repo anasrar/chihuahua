@@ -6,6 +6,7 @@ import (
 
 	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
 	"github.com/anasrar/chihuahua/pkg/dat"
+	"github.com/anasrar/chihuahua/pkg/ems"
 	"github.com/anasrar/chihuahua/pkg/oms"
 	"github.com/anasrar/chihuahua/pkg/utils"
 	"github.com/gen2brain/raylib-go/raygui"
@@ -24,6 +25,7 @@ func drop(filePath string) error {
 
 	var datScp *dat.Entry
 	datOms := []*dat.Entry{}
+	datEms := []*dat.Entry{}
 
 	for _, entry := range dat0.Entries {
 		t := utils.FilterUnprintableString(entry.Type)
@@ -33,6 +35,8 @@ func drop(filePath string) error {
 			datScp = entry
 		case "OMS":
 			datOms = append(datOms, entry)
+		case "EMS":
+			datEms = append(datEms, entry)
 		}
 	}
 
@@ -83,6 +87,17 @@ func drop(filePath string) error {
 			})
 		}
 
+	}
+
+	enemies = []*ems.Entry{}
+
+	for _, entry := range datEms {
+		em := ems.New()
+		if err := ems.FromPathWithOffset(em, filePath, entry.Offset); err != nil {
+			return err
+		}
+
+		enemies = append(enemies, em.Entries...)
 	}
 
 	datPath = filePath
@@ -196,6 +211,12 @@ func main() {
 			}
 		}
 
+		if showEnemies {
+			for _, enemy := range enemies {
+				rl.DrawCube(rl.NewVector3(enemy.Translation[0], enemy.Translation[1], enemy.Translation[2]), 0.4, 0.4, 0.4, rl.Red)
+			}
+		}
+
 		rl.DrawGrid(4, 0.5)
 
 		rl.EndMode3D()
@@ -249,6 +270,7 @@ func main() {
 		rl.EndScissorMode()
 
 		showObjects = raygui.CheckBox(rl.NewRectangle(8, 218, 14, 14), "Show Objects", showObjects)
+		showEnemies = raygui.CheckBox(rl.NewRectangle(8, 240, 14, 14), "Show Enemies", showEnemies)
 
 		if scp == nil {
 			raygui.Disable()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/anasrar/chihuahua/pkg/dat"
+	"github.com/anasrar/chihuahua/pkg/ems"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -26,6 +27,9 @@ var textures = map[int]*Texture{}
 var textureIndices = []int{}
 
 var models = []*Model{}
+
+var showEnemies = true
+var enemies = []*ems.Entry{}
 
 var showObjects = true
 var objects = []*Object{}
