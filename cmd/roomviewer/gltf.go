@@ -136,7 +136,7 @@ func ConvertToGlft() error {
 					}
 				}
 
-				q := rl.QuaternionFromEuler(node.Rotation.Z, node.Rotation.Y, node.Rotation.X)
+				orientation := rl.QuaternionFromEuler(node.Rotation[2], node.Rotation[1], node.Rotation[1])
 
 				doc.Meshes = append(doc.Meshes, &gltf.Mesh{
 					Name:       name,
@@ -145,9 +145,9 @@ func ConvertToGlft() error {
 				doc.Nodes = append(doc.Nodes, &gltf.Node{
 					Name:        name,
 					Mesh:        gltf.Index(len(doc.Meshes) - 1),
-					Translation: [3]float64{float64(node.Translation.X), float64(node.Translation.Y), float64(node.Translation.Z)},
-					Rotation:    [4]float64{float64(q.X), float64(q.Y), float64(q.Z), float64(q.W)},
-					Scale:       [3]float64{float64(node.Scale.X), float64(node.Scale.Y), float64(node.Scale.Z)},
+					Translation: [3]float64{float64(node.Translation[0]), float64(node.Translation[1]), float64(node.Translation[2])},
+					Rotation:    [4]float64{float64(orientation.X), float64(orientation.Y), float64(orientation.Z), float64(orientation.W)},
+					Scale:       [3]float64{float64(node.Scale[0]), float64(node.Scale[1]), float64(node.Scale[2])},
 				})
 				doc.Nodes[parentNodeIndex].Children = append(doc.Nodes[parentNodeIndex].Children, nodes)
 				nodes++

@@ -90,9 +90,9 @@ func drop(filePath string) error {
 						name,
 						&model,
 						int(vb.Material),
-						node.Translation,
-						node.Rotation,
-						node.Scale,
+						rl.NewVector3(node.Translation[0], node.Translation[1], node.Translation[2]),
+						rl.NewVector3(node.Rotation[0], node.Rotation[1], node.Rotation[2]),
+						rl.NewVector3(node.Scale[0], node.Scale[1], node.Scale[2]),
 					),
 				)
 			}
