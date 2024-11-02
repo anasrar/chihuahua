@@ -6,6 +6,7 @@ import (
 
 	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
 	"github.com/anasrar/chihuahua/pkg/dat"
+	"github.com/anasrar/chihuahua/pkg/oms"
 	"github.com/anasrar/chihuahua/pkg/utils"
 	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -22,11 +23,16 @@ func drop(filePath string) error {
 	}
 
 	var datScp *dat.Entry
+	datOms := []*dat.Entry{}
 
 	for _, entry := range dat0.Entries {
-		if utils.FilterUnprintableString(entry.Type) == "SCP" {
+		t := utils.FilterUnprintableString(entry.Type)
+
+		switch t {
+		case "SCP":
 			datScp = entry
-			break
+		case "OMS":
+			datOms = append(datOms, entry)
 		}
 	}
 
@@ -60,6 +66,23 @@ func drop(filePath string) error {
 			}
 		default:
 		}
+	}
+
+	objects = []*Object{}
+
+	for _, entry := range datOms {
+		om := oms.New()
+		if err := oms.FromPathWithOffset(om, filePath, entry.Offset); err != nil {
+			return err
+		}
+
+		for _, omEntry := range om.Entries {
+			objects = append(objects, &Object{
+				RenderLabel: false,
+				Entry:       omEntry,
+			})
+		}
+
 	}
 
 	datPath = filePath
@@ -157,9 +180,34 @@ func main() {
 				rl.PopMatrix()
 			}
 		}
+
+		if showObjects {
+			ray := rl.GetMouseRay(rl.GetMousePosition(), camera)
+			for _, obj := range objects {
+				obj.RenderLabel = rl.GetRayCollisionBox(
+					ray,
+					rl.NewBoundingBox(
+						rl.NewVector3(obj.Translation[0]-0.2, obj.Translation[1]-0.2, obj.Translation[2]-0.2),
+						rl.NewVector3(obj.Translation[0]+0.2, obj.Translation[1]+0.2, obj.Translation[2]+0.2),
+					),
+				).Hit
+
+				rl.DrawCube(rl.NewVector3(obj.Translation[0], obj.Translation[1], obj.Translation[2]), 0.4, 0.4, 0.4, rl.Blue)
+			}
+		}
+
 		rl.DrawGrid(4, 0.5)
 
 		rl.EndMode3D()
+
+		if showObjects {
+			for _, obj := range objects {
+				if obj.RenderLabel {
+					screenPosition := rl.GetWorldToScreen(rl.NewVector3(obj.Translation[0], obj.Translation[1]+.4, obj.Translation[2]), camera)
+					raygui.Label(rl.NewRectangle(screenPosition.X, screenPosition.Y, 120, 18), obj.Name)
+				}
+			}
+		}
 
 		raygui.ScrollPanel(
 			modelRectangle,
@@ -199,6 +247,8 @@ func main() {
 		}
 
 		rl.EndScissorMode()
+
+		showObjects = raygui.CheckBox(rl.NewRectangle(8, 218, 14, 14), "Show Objects", showObjects)
 
 		if scp == nil {
 			raygui.Disable()

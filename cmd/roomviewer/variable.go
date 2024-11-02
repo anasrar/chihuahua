@@ -27,6 +27,9 @@ var textureIndices = []int{}
 
 var models = []*Model{}
 
+var showObjects = true
+var objects = []*Object{}
+
 var background = rl.NewColor(0x12, 0x12, 0x12, 0xFF)
 
 var tm3PreviewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)
