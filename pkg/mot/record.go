@@ -29,8 +29,8 @@ type Record struct {
 
 func (self *Record) CurveToLinear(
 	index int,
-	p0 [2]float32,
-	p1 [2]float32,
+	p0 *[2]float32,
+	p1 *[2]float32,
 ) error {
 	if index == int(self.CurveTotal-1) {
 		return fmt.Errorf("Index is last curve")
@@ -45,10 +45,8 @@ func (self *Record) CurveToLinear(
 	currentPosition := (position + positionDelta*float32(currentCurve.ControlPoint))
 	nextPosition := (position + positionDelta*float32(nextCurve.ControlPoint))
 
-	p0[0] = 0
-	p0[1] = currentPosition
-	p1[0] = float32(nextCurve.FrameDelta)
-	p1[1] = nextPosition
+	*p0 = [2]float32{0, currentPosition}
+	*p1 = [2]float32{float32(nextCurve.FrameDelta), nextPosition}
 
 	return nil
 }
@@ -120,7 +118,7 @@ func (self *Record) QuantizeLinear(frameTotal uint16) []float32 {
 		p0 := [2]float32{0, 0}
 		p1 := [2]float32{0, 0}
 
-		if err := self.CurveToLinear(i, p0, p1); err != nil {
+		if err := self.CurveToLinear(i, &p0, &p1); err != nil {
 			continue
 		}
 
