@@ -28,11 +28,11 @@ var textureIndices = []int{}
 
 var models = []*Model{}
 
-var showEnemies = true
-var enemies = []*ems.Entry{}
+var showEms = true
+var emsEntries = []*ems.Entry{}
 
-var showObjects = true
-var objects = []*Object{}
+var showOms = true
+var omsEntries = []*Object{}
 
 var background = rl.NewColor(0x12, 0x12, 0x12, 0xFF)
 

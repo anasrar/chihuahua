@@ -72,7 +72,7 @@ func drop(filePath string) error {
 		}
 	}
 
-	objects = []*Object{}
+	omsEntries = []*Object{}
 
 	for _, entry := range datOms {
 		om := oms.New()
@@ -81,7 +81,7 @@ func drop(filePath string) error {
 		}
 
 		for _, omEntry := range om.Entries {
-			objects = append(objects, &Object{
+			omsEntries = append(omsEntries, &Object{
 				RenderLabel: false,
 				Entry:       omEntry,
 			})
@@ -89,7 +89,7 @@ func drop(filePath string) error {
 
 	}
 
-	enemies = []*ems.Entry{}
+	emsEntries = []*ems.Entry{}
 
 	for _, entry := range datEms {
 		em := ems.New()
@@ -97,7 +97,7 @@ func drop(filePath string) error {
 			return err
 		}
 
-		enemies = append(enemies, em.Entries...)
+		emsEntries = append(emsEntries, em.Entries...)
 	}
 
 	datPath = filePath
@@ -196,9 +196,9 @@ func main() {
 			}
 		}
 
-		if showObjects {
+		if showOms {
 			ray := rl.GetMouseRay(rl.GetMousePosition(), camera)
-			for _, obj := range objects {
+			for _, obj := range omsEntries {
 				obj.RenderLabel = rl.GetRayCollisionBox(
 					ray,
 					rl.NewBoundingBox(
@@ -211,8 +211,8 @@ func main() {
 			}
 		}
 
-		if showEnemies {
-			for _, enemy := range enemies {
+		if showEms {
+			for _, enemy := range emsEntries {
 				rl.DrawCube(rl.NewVector3(enemy.Translation[0], enemy.Translation[1]+0.2, enemy.Translation[2]), 0.4, 0.4, 0.4, rl.Red)
 			}
 		}
@@ -221,8 +221,8 @@ func main() {
 
 		rl.EndMode3D()
 
-		if showObjects {
-			for _, obj := range objects {
+		if showOms {
+			for _, obj := range omsEntries {
 				if obj.RenderLabel {
 					screenPosition := rl.GetWorldToScreen(rl.NewVector3(obj.Translation[0], obj.Translation[1]+.4, obj.Translation[2]), camera)
 					raygui.Label(rl.NewRectangle(screenPosition.X, screenPosition.Y, 120, 18), obj.Name)
@@ -269,8 +269,8 @@ func main() {
 
 		rl.EndScissorMode()
 
-		showObjects = raygui.CheckBox(rl.NewRectangle(8, 218, 14, 14), "Show Objects", showObjects)
-		showEnemies = raygui.CheckBox(rl.NewRectangle(8, 240, 14, 14), "Show Enemies", showEnemies)
+		showOms = raygui.CheckBox(rl.NewRectangle(8, 218, 14, 14), "Show OMS", showOms)
+		showEms = raygui.CheckBox(rl.NewRectangle(8, 240, 14, 14), "Show EMS", showEms)
 
 		if scp == nil {
 			raygui.Disable()
