@@ -7,10 +7,6 @@ import (
 	"github.com/x448/float16"
 )
 
-const (
-	TangentScale = float32(0.01)
-)
-
 type Record struct {
 	IsNull             bool   `json:"is_null"`
 	Target             uint8  `json:"target"`
@@ -57,7 +53,6 @@ func (self *Record) CurveToHermite(
 	m0 *float32,
 	p1 *[2]float32,
 	m1 *float32,
-	tangetScale float32,
 ) error {
 	if index == int(self.CurveTotal-1) {
 		return fmt.Errorf("Index is last curve")
@@ -74,9 +69,9 @@ func (self *Record) CurveToHermite(
 	nextCurve := self.Curves[index+1]
 
 	currentPosition := (position + positionDelta*float32(currentCurve.ControlPoint))
-	*m0 = (tangent1 + tangentDelta1*float32(currentCurve.ControlTangent1)) * tangetScale
+	*m0 = (tangent1 + tangentDelta1*float32(currentCurve.ControlTangent1))
 	nextPosition := (position + positionDelta*float32(nextCurve.ControlPoint))
-	*m1 = (tangent0 + tangentDelta0*float32(currentCurve.ControlTangent0)) * tangetScale
+	*m1 = (tangent0 + tangentDelta0*float32(currentCurve.ControlTangent0))
 
 	*p0 = [2]float32{0, currentPosition}
 	*p1 = [2]float32{float32(nextCurve.FrameDelta), nextPosition}
@@ -95,7 +90,7 @@ func (self *Record) CurveToBezier(
 	m0 := float32(0)
 	m1 := float32(0)
 
-	if err := self.CurveToHermite(index, p0, &m0, p3, &m1, tangentScale); err != nil {
+	if err := self.CurveToHermite(index, p0, &m0, p3, &m1); err != nil {
 		return err
 	}
 
