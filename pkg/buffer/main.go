@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-
-	"github.com/x448/float16"
 )
 
 type SeekMode int
@@ -149,26 +147,6 @@ func ReadInt64BE(stream io.ReadWriteSeeker, n *int64) (uint64, error) {
 	return ReadNumberFactory(stream, n, binary.BigEndian)
 }
 
-func ReadFloat16LE(stream io.ReadWriteSeeker, n *float16.Float16) (uint64, error) {
-	var short uint16
-	position, err := ReadUint16LE(stream, &short)
-	if err != nil {
-		return 0, err
-	}
-	*n = float16.Frombits(short)
-	return position, nil
-}
-
-func ReadFloat16BE(stream io.ReadWriteSeeker, n *float16.Float16) (uint64, error) {
-	var short uint16
-	position, err := ReadUint16BE(stream, &short)
-	if err != nil {
-		return 0, err
-	}
-	*n = float16.Frombits(short)
-	return position, nil
-}
-
 func ReadFloat32LE(stream io.ReadWriteSeeker, n *float32) (uint64, error) {
 	return ReadNumberFactory(stream, n, binary.LittleEndian)
 }
@@ -278,14 +256,6 @@ func WriteInt64LE(stream io.ReadWriteSeeker, n int64) (uint64, error) {
 
 func WriteInt64BE(stream io.ReadWriteSeeker, n int64) (uint64, error) {
 	return WriteNumberFactory(stream, n, binary.BigEndian)
-}
-
-func Writeloat16LE(stream io.ReadWriteSeeker, n float16.Float16) (uint64, error) {
-	return WriteUint16LE(stream, n.Bits())
-}
-
-func WriteFloat16BE(stream io.ReadWriteSeeker, n float16.Float16) (uint64, error) {
-	return WriteUint16BE(stream, n.Bits())
 }
 
 func WriteFloat32LE(stream io.ReadWriteSeeker, n float32) (uint64, error) {
