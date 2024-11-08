@@ -196,6 +196,7 @@ func loadModel(index int) error {
 	}
 
 	modelIndex = index
+	motionIndex = -1
 
 	return nil
 }
@@ -208,6 +209,7 @@ func drop(filePath string) error {
 
 	tmpTm3Entries := []*Entry{}
 	tmpMdEntries := []*Entry{}
+	tmpMotEntries := []*Entry{}
 
 	for i, entry := range dat0.Entries {
 		t := utils.FilterUnprintableString(entry.Type)
@@ -217,6 +219,8 @@ func drop(filePath string) error {
 			tmpMdEntries = append(tmpMdEntries, NewEntry(name, entry))
 		case "TM3":
 			tmpTm3Entries = append(tmpTm3Entries, NewEntry(name, entry))
+		case "MOT":
+			tmpMotEntries = append(tmpMotEntries, NewEntry(name, entry))
 		default:
 			continue
 		}
@@ -228,14 +232,22 @@ func drop(filePath string) error {
 
 	tm3Entries = tmpTm3Entries
 	mdEntries = tmpMdEntries
+	motEntries = tmpMotEntries
 
 	mdContentRectangle.Height = float32(len(mdEntries))*24 + 8
+	motContentRectangle.Height = float32(len(motEntries))*24 + 8
 
 	if err := loadModel(0); err != nil {
 		return err
 	}
 
 	datPath = filePath
+	return nil
+}
+
+func loadMotion(index int) error {
+	log.Println("TODO: implement load motion")
+	motionIndex = index
 	return nil
 }
 
@@ -495,6 +507,59 @@ func main() {
 		if !hasModel {
 			raygui.Enable()
 		}
+
+		raygui.ScrollPanel(
+			motRectangle,
+			"",
+			motContentRectangle,
+			&motScroll,
+			&motView,
+		)
+
+		// rl.DrawRectangle(
+		//      int32(motRectangle.X+motScroll.X),
+		//      int32(motRectangle.Y+motScroll.Y),
+		//      int32(motContentRectangle.Width),
+		//      int32(motContentRectangle.Height),
+		//      rl.Fade(rl.Red, 0.1),
+		// )
+
+		rl.BeginScissorMode(
+			int32(motView.X),
+			int32(motView.Y),
+			int32(motView.Width),
+			int32(motView.Height),
+		)
+
+		{
+			y := motRectangle.Y + motScroll.Y
+			mousePosition := rl.GetMousePosition()
+			for i, entry := range motEntries {
+				rect := rl.NewRectangle(12, (24*float32(i))+4+y, motContentRectangle.Width, 24)
+				inside := rl.CheckCollisionRecs(rect, motRectangle)
+
+				if inside {
+					r := rl.GetCollisionRec(rect, motRectangle)
+					hover := rl.CheckCollisionPointRec(mousePosition, r)
+
+					if hover {
+						rl.DrawRectangleRec(r, rl.NewColor(0x2A, 0x2A, 0x2A, 0xFF))
+
+						if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
+							go func() {
+								loadMotion(i)
+							}()
+						}
+					} else if i == motionIndex {
+						rl.DrawRectangleRec(r, rl.NewColor(0x1F, 0x1F, 0x1F, 0xFF))
+					}
+
+					raygui.Label(rect, entry.Name)
+				}
+			}
+		}
+
+		rl.EndScissorMode()
 
 		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
 
