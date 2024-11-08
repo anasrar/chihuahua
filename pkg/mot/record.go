@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/anasrar/chihuahua/pkg/utils"
-	"github.com/x448/float16"
 )
 
 type Record struct {
@@ -32,8 +31,8 @@ func (self *Record) CurveToLinear(
 		return fmt.Errorf("Index is last curve")
 	}
 
-	position := float16.Frombits(self.Position).Float32()
-	positionDelta := float16.Frombits(self.PositionDelta).Float32()
+	position := utils.PgHalfFloat32FromUint16(self.Position)
+	positionDelta := utils.PgHalfFloat32FromUint16(self.PositionDelta)
 
 	currentCurve := self.Curves[index]
 	nextCurve := self.Curves[index+1]
@@ -58,12 +57,12 @@ func (self *Record) CurveToHermite(
 		return fmt.Errorf("Index is last curve")
 	}
 
-	position := float16.Frombits(self.Position).Float32()
-	positionDelta := float16.Frombits(self.PositionDelta).Float32()
-	tangent1 := float16.Frombits(self.Tangent1).Float32()
-	tangentDelta1 := float16.Frombits(self.TangentDelta0).Float32()
-	tangent0 := float16.Frombits(self.Tangent1).Float32()
-	tangentDelta0 := float16.Frombits(self.TangentDelta0).Float32()
+	position := utils.PgHalfFloat32FromUint16(self.Position)
+	positionDelta := utils.PgHalfFloat32FromUint16(self.PositionDelta)
+	tangent1 := utils.PgHalfFloat32FromUint16(self.Tangent1)
+	tangentDelta1 := utils.PgHalfFloat32FromUint16(self.TangentDelta0)
+	tangent0 := utils.PgHalfFloat32FromUint16(self.Tangent1)
+	tangentDelta0 := utils.PgHalfFloat32FromUint16(self.TangentDelta0)
 
 	currentCurve := self.Curves[index]
 	nextCurve := self.Curves[index+1]
