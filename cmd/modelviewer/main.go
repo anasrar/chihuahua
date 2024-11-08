@@ -17,12 +17,12 @@ import (
 )
 
 func loadModel(index int) error {
-	_tm3 := tm3s[index]
-	_mds := mds[index]
+	tm3Entry := tm3Entries[index]
+	mdEntry := mdEntries[index]
 
 	{
 		tm := tm3.New()
-		if err := tm3.FromPathWithOffsetSize(tm, _tm3.Source, _tm3.Offset, _tm3.Size); err != nil {
+		if err := tm3.FromPathWithOffsetSize(tm, tm3Entry.Source, tm3Entry.Offset, tm3Entry.Size); err != nil {
 			return err
 		}
 
@@ -36,7 +36,7 @@ func loadModel(index int) error {
 
 		for i, entry := range tm.Entries {
 			tim := tim3.New()
-			if err := tim3.FromPathWithOffset(tim, _tm3.Source, entry.Offset); err != nil {
+			if err := tim3.FromPathWithOffset(tim, tm3Entry.Source, entry.Offset); err != nil {
 				return err
 			}
 
@@ -59,8 +59,8 @@ func loadModel(index int) error {
 	}
 
 	{
-		var s scr.Scr
-		if err := scr.FromPathWithOffset(&s, _mds.Source, _mds.Offset); err != nil {
+		s := scr.New()
+		if err := scr.FromPathWithOffset(s, mdEntry.Source, mdEntry.Offset); err != nil {
 			return err
 		}
 
@@ -206,30 +206,30 @@ func drop(filePath string) error {
 		return err
 	}
 
-	_tm3s := []*Entry{}
-	_mds := []*Entry{}
+	tmpTm3Entries := []*Entry{}
+	tmpMdEntries := []*Entry{}
 
 	for i, entry := range dat0.Entries {
 		t := utils.FilterUnprintableString(entry.Type)
 		name := fmt.Sprintf("%s_%03d", t, i)
 		switch t {
 		case "MD":
-			_mds = append(_mds, NewEntry(name, entry))
+			tmpMdEntries = append(tmpMdEntries, NewEntry(name, entry))
 		case "TM3":
-			_tm3s = append(_tm3s, NewEntry(name, entry))
+			tmpTm3Entries = append(tmpTm3Entries, NewEntry(name, entry))
 		default:
 			continue
 		}
 	}
 
-	if len(_mds) == 0 {
+	if len(tmpMdEntries) == 0 {
 		return fmt.Errorf("MD not found")
 	}
 
-	tm3s = _tm3s
-	mds = _mds
+	tm3Entries = tmpTm3Entries
+	mdEntries = tmpMdEntries
 
-	mdContentRectangle.Height = float32(len(mds))*24 + 8
+	mdContentRectangle.Height = float32(len(mdEntries))*24 + 8
 
 	if err := loadModel(0); err != nil {
 		return err
@@ -377,7 +377,7 @@ func main() {
 		{
 			y := mdRectangle.Y + mdScroll.Y
 			mousePosition := rl.GetMousePosition()
-			for i, entry := range mds {
+			for i, entry := range mdEntries {
 				rect := rl.NewRectangle(12, (24*float32(i))+4+y, mdContentRectangle.Width, 24)
 				inside := rl.CheckCollisionRecs(rect, mdRectangle)
 
@@ -484,7 +484,7 @@ func main() {
 		if raygui.Button(rl.NewRectangle(8, 492, 132, 32), "Convert To GLTF") {
 			go func() {
 				log.Println("Convert Model to GLTF")
-				if err := ConvertModelToGlft(datPath, tm3s[modelIndex], mds[modelIndex], textureShift); err != nil {
+				if err := ConvertModelToGlft(datPath, tm3Entries[modelIndex], mdEntries[modelIndex], textureShift); err != nil {
 					log.Println(err)
 				} else {
 					log.Println("Convert done")

@@ -19,17 +19,16 @@ var camera = rl.NewCamera3D(
 	rl.CameraPerspective,
 )
 
-var modelIndex = 0
-
-var tm3s = []*Entry{}
+var tm3Entries = []*Entry{}
 var textureDefault rl.Texture2D
 var textures = map[int]*Texture{}
 var textureIndices = []int{}
 var textureTotal = 0
 var textureShift = 0
 
-var mds = []*Entry{}
+var mdEntries = []*Entry{}
 var models = []*Model{}
+var modelIndex = 0
 
 var showBones = false
 var boneRender rl.RenderTexture2D
