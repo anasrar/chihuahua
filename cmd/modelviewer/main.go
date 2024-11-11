@@ -154,7 +154,7 @@ func loadModel(index int) error {
 					)
 
 					parentWorldPosition := bonesWorldPosition[bone.Parent]
-					worldPosition := rl.Vector3Add(parentWorldPosition, rl.NewVector3(bone.X, bone.Y, bone.Z))
+					worldPosition := rl.Vector3Add(parentWorldPosition, rl.NewVector3(bone.Translation[0], bone.Translation[1], bone.Translation[2]))
 					bonesWorldPosition[int16(i+1)] = worldPosition
 
 					pose = append(

@@ -1,19 +1,26 @@
 package bone
 
 type Bone struct {
-	Name   string  `json:"name"`
-	X      float32 `json:"x"`
-	Y      float32 `json:"y"`
-	Z      float32 `json:"z"`
-	Parent int16   `json:"parent"`
+	Name        string     `json:"name"`
+	Translation [3]float32 `json:"translation"`
+	Rotation    [3]float32 `json:"rotation"`
+	Parent      int16      `json:"parent"`
 }
 
-func New(name string, x, y, z float32, parent int16) *Bone {
+func New(
+	name string,
+	translationX,
+	translationY,
+	translationZ float32,
+	rotationX,
+	rotationY,
+	rotationZ float32,
+	parent int16,
+) *Bone {
 	return &Bone{
-		Name:   name,
-		X:      x,
-		Y:      y,
-		Z:      z,
-		Parent: parent,
+		Name:        name,
+		Translation: [3]float32{translationX, translationY, translationZ},
+		Rotation:    [3]float32{rotationX, rotationY, rotationZ},
+		Parent:      parent,
 	}
 }

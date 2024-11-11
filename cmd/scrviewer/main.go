@@ -106,7 +106,7 @@ func drop(filePath string) error {
 		}
 
 		for _, bone := range s.Nodes[0].Mdb.Bones {
-			node := NewBoneNode(bone.X, bone.Y, bone.Z)
+			node := NewBoneNode(bone.Translation[0], bone.Translation[1], bone.Translation[2])
 			bones = append(bones, node)
 
 			bones[bone.Parent].Children = append(

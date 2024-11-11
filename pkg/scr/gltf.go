@@ -106,7 +106,7 @@ func ConvertToGlft(
 
 		doc.Nodes = append(doc.Nodes, &gltf.Node{
 			Name:        fmt.Sprintf("%d", bones),
-			Translation: [3]float64{float64(bone.X), float64(bone.Y), float64(bone.Z)},
+			Translation: [3]float64{float64(bone.Translation[0]), float64(bone.Translation[1]), float64(bone.Translation[2])},
 		})
 
 		parentNode := doc.Nodes[rootBoneIndexInNodes+int(bone.Parent)]
@@ -125,9 +125,9 @@ func ConvertToGlft(
 		parentWorldPositionY := parentWorldPosition[1]
 		parentWorldPositionZ := parentWorldPosition[2]
 
-		worldPositionX := parentWorldPositionX + bone.X
-		worldPositionY := parentWorldPositionY + bone.Y
-		worldPositionZ := parentWorldPositionZ + bone.Z
+		worldPositionX := parentWorldPositionX + bone.Translation[0]
+		worldPositionY := parentWorldPositionY + bone.Translation[1]
+		worldPositionZ := parentWorldPositionZ + bone.Translation[2]
 
 		bonesWorldPosition[int16(bones)] = [3]float32{
 			worldPositionX,

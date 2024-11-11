@@ -105,6 +105,9 @@ func (self *Mdb) unmarshal(stream io.ReadWriteSeeker) error {
 				x,
 				y,
 				z,
+				0,
+				0,
+				0,
 				parent,
 			),
 		)
