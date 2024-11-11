@@ -141,6 +141,51 @@ func (self *Record) QuantizeLinear(frameTotal uint16) []float32 {
 	return result
 }
 
+func (self *Record) QuantizeHermite(frameTotal uint16) []float32 {
+	result := []float32{}
+	frame := uint16(0)
+
+	for i := 0; i < int(self.CurveTotal-1); i++ {
+		nextCurve := self.Curves[i+1]
+
+		p0 := [2]float32{0, 0}
+		m0 := float32(0)
+		p1 := [2]float32{0, 0}
+		m1 := float32(0)
+
+		if err := self.CurveToHermite(i, &p0, &m0, &p1, &m1); err != nil {
+			continue
+		}
+
+		total := float32(nextCurve.FrameDelta)
+
+		for j := float32(0); j < total; j++ {
+			t := j / total
+			t2 := t * t
+			t3 := t2 * t
+
+			result = append(
+				result,
+				(2*t3-3*t2+1)*p0[1]+(t3-2*t2+t)*m0+(-2*t3+3*t2)*p1[1]+(t3-t2)*m1,
+			)
+			frame++
+		}
+
+	}
+
+	d := frameTotal - frame
+
+	if d > 0 {
+		lastFrame := result[len(result)-1]
+
+		for i := uint16(0); i < d; i++ {
+			result = append(result, lastFrame)
+		}
+	}
+
+	return result
+}
+
 func NewRecord() *Record {
 	return &Record{
 		Target:             0,
