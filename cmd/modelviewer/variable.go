@@ -34,7 +34,8 @@ var showBones = false
 var boneRender rl.RenderTexture2D
 
 var motEntries = []*Entry{}
-var motionIndex = -1
+
+// var motionIndex = -1
 
 var background = rl.NewColor(0x12, 0x12, 0x12, 0xFF)
 
@@ -53,7 +54,7 @@ var modelContentRectangle = rl.NewRectangle(0, 0, 162, 0)
 var modelScroll = rl.NewVector2(0, 0)
 var modelView = rl.NewRectangle(0, 0, 0, 0)
 
-var motRectangle = rl.NewRectangle(8, 532, 182, 202)
-var motContentRectangle = rl.NewRectangle(0, 0, 162, 0)
-var motScroll = rl.NewVector2(0, 0)
-var motView = rl.NewRectangle(0, 0, 0, 0)
+// var motRectangle = rl.NewRectangle(8, 532, 182, 202)
+// var motContentRectangle = rl.NewRectangle(0, 0, 162, 0)
+// var motScroll = rl.NewVector2(0, 0)
+// var motView = rl.NewRectangle(0, 0, 0, 0)
