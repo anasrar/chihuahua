@@ -101,6 +101,7 @@ func (self *Mdb) unmarshal(stream io.ReadWriteSeeker) error {
 		self.Bones = append(
 			self.Bones,
 			bone.New(
+				i+1,
 				strconv.Itoa(int(i)),
 				x,
 				y,

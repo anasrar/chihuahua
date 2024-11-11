@@ -1,6 +1,7 @@
 package bone
 
 type Bone struct {
+	Index       uint16     `json:"index"`
 	Name        string     `json:"name"`
 	Translation [3]float32 `json:"translation"`
 	Rotation    [3]float32 `json:"rotation"`
@@ -8,6 +9,7 @@ type Bone struct {
 }
 
 func New(
+	index uint16,
 	name string,
 	translationX,
 	translationY,
@@ -18,6 +20,7 @@ func New(
 	parent int16,
 ) *Bone {
 	return &Bone{
+		Index:       index,
 		Name:        name,
 		Translation: [3]float32{translationX, translationY, translationZ},
 		Rotation:    [3]float32{rotationX, rotationY, rotationZ},
