@@ -12,6 +12,7 @@ var defaultFontSource []byte
 var DefaultFont rl.Font
 
 func Load() {
+	// TODO: upgrade raylib-go and change to rune
 	chars := []int32{0}
 	for i := int32(32); i < 256; i++ {
 		chars = append(chars, i)
