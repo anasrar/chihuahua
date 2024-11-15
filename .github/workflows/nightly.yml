@@ -72,7 +72,7 @@ jobs:
           echo "Windows: datpack"
           go build -v -o output/datunpack_win.exe --ldflags="-extldflags=-static -s -w" cmd/datunpack/gui.go cmd/datunpack/main.go cmd/datunpack/unpack.go cmd/datunpack/variable.go
           echo "Windows: datunpack"
-          go build -v -o output/modelviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/modelviewer/entry.go cmd/modelviewer/gltf.go cmd/modelviewer/main.go cmd/modelviewer/model.go cmd/modelviewer/texture.go cmd/modelviewer/variable.go
+          go build -v -o output/modelviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/modelviewer/bone_node.go cmd/modelviewer/entry.go cmd/modelviewer/gltf.go cmd/modelviewer/main.go cmd/modelviewer/model.go cmd/modelviewer/texture.go cmd/modelviewer/variable.go
           echo "Windows: modelviewer"
           go build -v -o output/roomviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/roomviewer/gltf.go cmd/roomviewer/main.go cmd/roomviewer/model.go cmd/roomviewer/object.go cmd/roomviewer/texture.go cmd/roomviewer/variable.go
           echo "Windows: roomviewer"
