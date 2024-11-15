@@ -7,11 +7,11 @@ import (
 	"log"
 	"os"
 
-	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/anasrar/chihuahua/pkg/buffer"
+	rlig "github.com/anasrar/chihuahua/pkg/raylib_imgui"
 	"github.com/anasrar/chihuahua/pkg/t32"
 	"github.com/anasrar/chihuahua/pkg/utils"
-	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -70,12 +70,6 @@ func drop(filePath string) error {
 }
 
 func zoom(wheel float32) {
-	isInsidePreview := rl.CheckCollisionPointRec(rl.GetMousePosition(), previewRectangle)
-
-	if mode == ModeMultiple && isInsidePreview {
-		return
-	}
-
 	scale := float32(0)
 	switch wheel {
 	case 1:
@@ -124,15 +118,15 @@ func main() {
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
-	rayguistyle.Load()
-	defer rayguistyle.Unload()
+	rlig.Load()
+	defer rlig.Unload()
 
 	for !rl.WindowShouldClose() {
+		rlig.Update()
+
 		if rl.IsWindowResized() {
 			width = float32(rl.GetScreenWidth())
 			height = float32(rl.GetScreenHeight())
-
-			previewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)
 		}
 
 		if rl.IsFileDropped() {
@@ -160,8 +154,57 @@ func main() {
 			zoom(wheel)
 		}
 
+		imgui.NewFrame()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 12), imgui.CondAlways, imgui.NewVec2(1, 0))
+		imgui.BeginV("View", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.ColorEdit3V("Background", &(background), imgui.ColorEditFlagsNoInputs)
+		if imgui.Button("Reset View") {
+			if currentEntry != -1 {
+				entry := entries[currentEntry]
+				matrix = rl.MatrixTranslate(
+					(width/2)-(float32(entry.Texture.Width)/2),
+					(height/2)-(float32(entry.Texture.Height)/2),
+					0,
+				)
+			}
+		}
+		imgui.End()
+
+		if currentEntry != -1 {
+			imgui.SetNextWindowPosV(imgui.NewVec2(12, 12), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
+			imgui.BeginV("Information", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+			entry := entries[currentEntry]
+			imgui.Text(
+				fmt.Sprintf(
+					"%dx%d",
+					entry.Picture.ImageWidth,
+					entry.Picture.ImageHeight,
+				),
+			)
+			imgui.End()
+		}
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
+		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.BeginDisabledV(!canConvert)
+		if imgui.Button("Convert To PNG") {
+			go func() {
+				convert2png()
+			}()
+		}
+		imgui.EndDisabled()
+		imgui.End()
+
 		rl.BeginDrawing()
-		rl.ClearBackground(background)
+		rl.ClearBackground(
+			rl.NewColor(
+				uint8(background[0]*0xFF),
+				uint8(background[1]*0xFF),
+				uint8(background[2]*0xFF),
+				0xFF,
+			),
+		)
 
 		if currentEntry != -1 {
 			entry := entries[currentEntry]
@@ -186,120 +229,15 @@ func main() {
 
 			rl.EndMode2D()
 
-			rl.DrawTextEx(
-				rayguistyle.DefaultFont,
-				fmt.Sprintf(
-					"%dx%d",
-					entry.Picture.ImageWidth,
-					entry.Picture.ImageHeight,
-				),
-				rl.NewVector2(8, 8),
-				16,
-				0,
-				rl.White,
-			)
-
 			for i, c := range entry.Picture.ClutData {
-				rl.DrawRectangle(int32(i%8*8)+8, int32(i/8*8)+28, 8, 8, *c)
+				rl.DrawRectangle(int32(i%8*8)+16, int32(i/8*8)+54, 8, 8, *c)
 			}
 		}
 
-		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
-
-		if mode == ModeMultiple {
-			raygui.ScrollPanel(
-				previewRectangle,
-				"",
-				previewContentRectangle,
-				&previewScroll,
-				&previewView,
-			)
-
-			// rl.DrawRectangle(
-			// 	int32(previewRectangle.X+previewScroll.X),
-			// 	int32(previewRectangle.Y+previewScroll.Y),
-			// 	int32(previewContentRectangle.Width),
-			// 	int32(previewContentRectangle.Height),
-			// 	rl.Fade(rl.Red, 0.1),
-			// )
-
-			rl.BeginScissorMode(
-				int32(previewView.X),
-				int32(previewView.Y),
-				int32(previewView.Width),
-				int32(previewView.Height),
-			)
-
-			{
-				y := previewRectangle.Y + previewScroll.Y
-
-				for i, entry := range entries {
-					rect := rl.NewRectangle(width-73, float32(i)*42+y+1, 42, 42)
-					isInside := rl.CheckCollisionRecs(previewRectangle, rect)
-					if !isInside {
-						continue
-					}
-
-					bound := rl.GetCollisionRec(previewRectangle, rect)
-					tint := rl.Gray
-
-					isHover := rl.CheckCollisionPointRec(rl.GetMousePosition(), bound)
-					if isHover {
-						tint = rl.White
-
-						if rl.IsMouseButtonPressed(0) {
-							currentEntry = i
-							matrix = rl.MatrixTranslate(
-								(width/2)-(float32(entry.Texture.Width)/2),
-								(height/2)-(float32(entry.Texture.Height)/2),
-								0,
-							)
-						}
-					}
-
-					rl.DrawTexturePro(
-						entry.Texture,
-						rl.NewRectangle(0, 0, float32(entry.Texture.Width), float32(entry.Texture.Height)),
-						rl.NewRectangle(width-73, float32(i)*42+y+1, 42, 42),
-						rl.Vector2Zero(),
-						0,
-						tint,
-					)
-
-				}
-			}
-
-			rl.EndScissorMode()
-		}
-
-		if !canConvert {
-			raygui.Disable()
-		}
-
-		if raygui.Button(rl.NewRectangle(8, height-40, 132, 32), "Convert To PNG") {
-			go func() {
-				convert2png()
-			}()
-		}
-
-		if !canConvert {
-			raygui.Enable()
-		}
-
-		if raygui.Button(rl.NewRectangle(width-116, height-40, 108, 32), "Reset View") {
-			if currentEntry != -1 {
-				entry := entries[currentEntry]
-				matrix = rl.MatrixTranslate(
-					(width/2)-(float32(entry.Texture.Width)/2),
-					(height/2)-(float32(entry.Texture.Height)/2),
-					0,
-				)
-			}
-		}
-
+		rlig.Render()
 		rl.EndDrawing()
-
 	}
+
 	for _, entry := range entries {
 		rl.UnloadTexture(entry.Texture)
 	}
