@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  builds:
-    name: Build & Release
+  build_linux:
+    name: Build Linux & Release
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -41,23 +41,51 @@ jobs:
           echo "Linux: tm3pack"
           go build -v -o output/tm3unpack_linux --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3unpack/*.go
           echo "Linux: tm3unpack"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/datpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datpack/*.go
+
+      - name: Create Release and Upload Assets
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          tag: nightly
+          prerelease: true
+          name: nightly
+          artifacts: "output/*"
+
+  build_windows:
+    name: Build Windows & Release
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.1"
+
+      - name: Build
+        shell: C:/Program\ Files/Git/bin/bash.exe {0}
+        run: |
+          mkdir output
+          go build -v -o output/datpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datpack/*.go
           echo "Windows: datpack"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/datunpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datunpack/*.go
+          go build -v -o output/datunpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datunpack/*.go
           echo "Windows: datunpack"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
+          go build -v -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
           echo "Windows: modelviewer"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
+          go build -v -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
           echo "Windows: roomviewer"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
+          go build -v -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
           echo "Windows: scrviewer"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
+          go build -v -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
           echo "Windows: t32viewer"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
+          go build -v -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
           echo "Windows: timviewer"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/tm3pack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3pack/*.go
+          go build -v -o output/tm3pack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3pack/*.go
           echo "Windows: tm3pack"
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/tm3unpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3unpack/*.go
+          go build -v -o output/tm3unpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3unpack/*.go
           echo "Windows: tm3unpack"
 
       - name: Create Release and Upload Assets
