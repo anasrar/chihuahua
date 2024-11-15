@@ -68,23 +68,23 @@ jobs:
       - name: Build
         run: |
           mkdir output
-          go build -v -o output/datpack_win.exe --ldflags="-s -w" cmd/datpack/*.go
+          go build -v -o output/datpack_win.exe --ldflags="-s -w" cmd/datpack/gui.go cmd/datpack/main.go cmd/datpack/pack.go cmd/datpack/variable.go
           echo "Windows: datpack"
-          go build -v -o output/datunpack_win.exe --ldflags="-s -w" cmd/datunpack/*.go
+          go build -v -o output/datunpack_win.exe --ldflags="-s -w" cmd/datunpack/gui.go cmd/datunpack/main.go cmd/datunpack/unpack.go cmd/datunpack/variable.go
           echo "Windows: datunpack"
-          go build -v -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
+          go build -v -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/entry.go cmd/modelviewer/gltf.go cmd/modelviewer/main.go cmd/modelviewer/model.go cmd/modelviewer/texture.go cmd/modelviewer/variable.go
           echo "Windows: modelviewer"
-          go build -v -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
+          go build -v -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/gltf.go cmd/roomviewer/main.go cmd/roomviewer/model.go cmd/roomviewer/object.go cmd/roomviewer/texture.go cmd/roomviewer/variable.go
           echo "Windows: roomviewer"
-          go build -v -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
+          go build -v -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/bone_node.go cmd/scrviewer/main.go cmd/scrviewer/model.go cmd/scrviewer/texture.go cmd/scrviewer/variable.go
           echo "Windows: scrviewer"
-          go build -v -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
+          go build -v -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/entry.go cmd/t32viewer/main.go cmd/t32viewer/mode.go cmd/t32viewer/variable.go
           echo "Windows: t32viewer"
-          go build -v -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
+          go build -v -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/entry.go cmd/timviewer/main.go cmd/timviewer/mode.go cmd/timviewer/variable.go
           echo "Windows: timviewer"
-          go build -v -o output/tm3pack_win.exe --ldflags="-s -w" cmd/tm3pack/*.go
+          go build -v -o output/tm3pack_win.exe --ldflags="-s -w" cmd/tm3pack/gui.go cmd/tm3pack/main.go cmd/tm3pack/pack.go cmd/tm3pack/variable.go
           echo "Windows: tm3pack"
-          go build -v -o output/tm3unpack_win.exe --ldflags="-s -w" cmd/tm3unpack/*.go
+          go build -v -o output/tm3unpack_win.exe --ldflags="-s -w" cmd/tm3unpack/gui.go cmd/tm3unpack/main.go cmd/tm3unpack/unpack.go cmd/tm3unpack/variable.go
           echo "Windows: tm3unpack"
 
       - name: Create Release and Upload Assets
