@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install MinGW
+      - name: Install Deps
         run: |
           sudo apt-get install -y gcc-mingw-w64 libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libwayland-dev libxkbcommon-dev
 
@@ -23,24 +23,42 @@ jobs:
       - name: Build
         run: |
           mkdir output
-          go build -o output/datpack_linux --ldflags="-s -w" cmd/datpack/*.go
-          go build -o output/datunpack_linux --ldflags="-s -w" cmd/datunpack/*.go
-          go build -o output/modelviewer_linux --ldflags="-s -w" cmd/modelviewer/*.go
-          go build -o output/roomviewer_linux --ldflags="-s -w" cmd/roomviewer/*.go
-          go build -o output/scrviewer_linux --ldflags="-s -w" cmd/scrviewer/*.go
-          go build -o output/t32viewer_linux --ldflags="-s -w" cmd/t32viewer/*.go
-          go build -o output/timviewer_linux --ldflags="-s -w" cmd/timviewer/*.go
-          go build -o output/tm3pack_linux --ldflags="-s -w" cmd/tm3pack/*.go
-          go build -o output/tm3unpack_linux --ldflags="-s -w" cmd/tm3unpack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datpack_win.exe --ldflags="-s -w" cmd/datpack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/datunpack_win.exe --ldflags="-s -w" cmd/datunpack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3pack_win.exe --ldflags="-s -w" cmd/tm3pack/*.go
-          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -o output/tm3unpack_win.exe --ldflags="-s -w" cmd/tm3unpack/*.go
+          go build -v -o output/datpack_linux --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datpack/*.go
+          echo "Linux: datpack"
+          go build -v -o output/datunpack_linux --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datunpack/*.go
+          echo "Linux: datunpack"
+          go build -v -o output/modelviewer_linux --ldflags="-s -w" cmd/modelviewer/*.go
+          echo "Linux: modelviewer"
+          go build -v -o output/roomviewer_linux --ldflags="-s -w" cmd/roomviewer/*.go
+          echo "Linux: roomviewer"
+          go build -v -o output/scrviewer_linux --ldflags="-s -w" cmd/scrviewer/*.go
+          echo "Linux: scrviewer"
+          go build -v -o output/t32viewer_linux --ldflags="-s -w" cmd/t32viewer/*.go
+          echo "Linux: t32viewer"
+          go build -v -o output/timviewer_linux --ldflags="-s -w" cmd/timviewer/*.go
+          echo "Linux: timviewer"
+          go build -v -o output/tm3pack_linux --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3pack/*.go
+          echo "Linux: tm3pack"
+          go build -v -o output/tm3unpack_linux --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3unpack/*.go
+          echo "Linux: tm3unpack"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/datpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datpack/*.go
+          echo "Windows: datpack"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/datunpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datunpack/*.go
+          echo "Windows: datunpack"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
+          echo "Windows: modelviewer"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/roomviewer_win.exe --ldflags="-s -w" cmd/roomviewer/*.go
+          echo "Windows: roomviewer"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/scrviewer_win.exe --ldflags="-s -w" cmd/scrviewer/*.go
+          echo "Windows: scrviewer"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/t32viewer_win.exe --ldflags="-s -w" cmd/t32viewer/*.go
+          echo "Windows: t32viewer"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
+          echo "Windows: timviewer"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/tm3pack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3pack/*.go
+          echo "Windows: tm3pack"
+          CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -v -o output/tm3unpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3unpack/*.go
+          echo "Windows: tm3unpack"
 
       - name: Create Release and Upload Assets
         uses: ncipollo/release-action@v1.14.0
