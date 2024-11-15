@@ -3,47 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
+	"github.com/AllenDang/cimgui-go/imgui"
+	rlig "github.com/anasrar/chihuahua/pkg/raylib_imgui"
 	"github.com/anasrar/chihuahua/pkg/tm3"
-	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func writeLog(msg string) {
-	result := ""
-	words := strings.Split(msg, " ")
-	w := float32(0)
-
-	for _, word := range words {
-		dimension := rl.MeasureTextEx(rayguistyle.DefaultFont, word, 14, 0)
-		w += dimension.X
-		if w >= (logContentRectangle.Width - 22) { // 22 is padding
-			result += "\n"
-			w = 0
-		}
-		result += word + " "
-	}
-
-	logs += result
-
-	{
-		dimension := rl.MeasureTextEx(rayguistyle.DefaultFont, logs, 16, 0)
-		logContentRectangle.Height = dimension.Y + 16 // 16 is padding
-
-		if logAutoScroll && dimension.Y > logRectangle.Height {
-			offset := logContentRectangle.Height - logRectangle.Height
-			logScroll.Y = -offset
-		}
-	}
-
+	logs += msg
 	logs += "\n"
+	logUpdate = true
 }
 
 func clearLog() {
-	logContentRectangle = rl.NewRectangle(0, 0, 234, 0)
-	logScroll = rl.NewVector2(0, 0)
 	logs = ""
 }
 
@@ -52,16 +25,17 @@ func gui() {
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
-	rayguistyle.Load()
-	defer rayguistyle.Unload()
+	rlig.Load()
+	defer rlig.Unload()
+
+	createDock := true
 
 	for !rl.WindowShouldClose() {
+		rlig.Update()
+
 		if rl.IsWindowResized() {
 			width = float32(rl.GetScreenWidth())
 			height = float32(rl.GetScreenHeight())
-
-			logRectangle = rl.NewRectangle(0, 0, width, height-48)
-			logContentRectangle.Width = width - 20
 		}
 
 		if rl.IsFileDropped() {
@@ -75,6 +49,7 @@ func gui() {
 				tm3Path = ""
 				canUnpack = false
 				canCancel = false
+				tm3Data = nil
 			} else {
 				writeLog(fmt.Sprintf("Entry Total: %d", tim.EntryTotal))
 				writeLog("Ready")
@@ -82,119 +57,188 @@ func gui() {
 				tm3Path = filePath
 				canUnpack = true
 				canCancel = false
+				tm3Data = tim
 			}
 		}
 
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.NewColor(0x12, 0x12, 0x12, 0xFF))
+		imgui.NewFrame()
+
+		dock := imgui.DockSpaceOverViewport()
+		if createDock {
+			createDock = false
+			imgui.InternalDockBuilderRemoveNode(dock)
+			imgui.InternalDockBuilderAddNodeV(dock, imgui.DockNodeFlagsNone)
+			imgui.InternalDockBuilderSetNodeSize(dock, imgui.MainViewport().Size())
+
+			dockUp := imgui.InternalDockBuilderSplitNode(dock, imgui.DirUp, 0.7, nil, &dock)
+			dockDown := imgui.InternalDockBuilderSplitNode(dock, imgui.DirDown, 0.3, nil, &dock)
+
+			imgui.InternalDockBuilderDockWindow("Unpack", dockUp)
+			imgui.InternalDockBuilderDockWindow("Log", dockDown)
+
+			imgui.InternalDockBuilderFinish(dock)
+		}
+
+		noTabBar := imgui.NewWindowClass()
+		noTabBar.SetDockNodeFlagsOverrideSet(imgui.DockNodeFlags(imgui.DockNodeFlagsNoTabBar))
 
 		{
-			raygui.ScrollPanel(
-				logRectangle,
-				"",
-				logContentRectangle,
-				&logScroll,
-				&logView,
-			)
+			imgui.SetNextWindowClass(noTabBar)
+			imgui.BeginV("Unpack", nil, imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+			{
+				imgui.BeginDisabledV(!canUnpack)
+				if imgui.Button("Unpack") {
+					ctx, cancel = context.WithCancel(context.Background())
 
-			// rl.DrawRectangle(
-			//      int32(logRectangle.X+logScroll.X),
-			//      int32(logRectangle.Y+logScroll.Y),
-			//      int32(logContentRectangle.Width),
-			//      int32(logContentRectangle.Height),
-			//      rl.Fade(rl.Red, 0.1),
-			// )
+					go func() {
+						if err := unpack(
+							ctx,
+							tm3Path,
+							func(total, current uint32, name string) {
+								writeLog(fmt.Sprintf("%d/%d(%s): start", current, total, name))
+							},
+							func(total, current uint32, name string) {
+								writeLog(fmt.Sprintf("%d/%d(%s): done", current, total, name))
 
-			rl.BeginScissorMode(
-				int32(logView.X),
-				int32(logView.Y),
-				int32(logView.Width),
-				int32(logView.Height),
-			)
+								progress = float32(current) / float32(total)
+								if total == current {
+									writeLog("Done")
 
-			rl.DrawTextEx(
-				rayguistyle.DefaultFont,
-				logs,
-				rl.NewVector2(
-					logRectangle.X+logScroll.X+8,
-					logRectangle.Y+logScroll.Y+8,
-				),
-				16,
-				0,
-				rl.NewColor(0xDA, 0xDA, 0xDA, 0xFF),
-			)
-
-			rl.EndScissorMode()
-
-		}
-
-		if raygui.Button(rl.NewRectangle(8, height-40, 82, 32), "Clear") {
-			clearLog()
-		}
-
-		logAutoScroll = raygui.CheckBox(rl.NewRectangle(98, height-30, 12, 12), "Auto Scroll", logAutoScroll)
-
-		raygui.ProgressBar(rl.NewRectangle(214, height-40, width-402, 32), "", "", progress, 0.0, 1.0)
-
-		if !canUnpack {
-			raygui.Disable()
-		}
-
-		if raygui.Button(rl.NewRectangle(width-180, height-40, 82, 32), "Unpack") {
-			ctx, cancel = context.WithCancel(context.Background())
-
-			go func() {
-				if err := unpack(
-					ctx,
-					tm3Path,
-					func(total, current uint32, name string) {
-						writeLog(fmt.Sprintf("%d/%d(%s): start", current, total, name))
-					},
-					func(total, current uint32, name string) {
-						writeLog(fmt.Sprintf("%d/%d(%s): done", current, total, name))
-
-						progress = float32(current) / float32(total)
-						if total == current {
-							writeLog("Done")
+									progress = 0
+									canUnpack = true
+									canCancel = false
+								}
+							},
+						); err != nil {
+							writeLog(err.Error())
 
 							progress = 0
 							canUnpack = true
 							canCancel = false
 						}
-					},
-				); err != nil {
-					writeLog(err.Error())
+					}()
 
 					progress = 0
-					canUnpack = true
+					canUnpack = false
+					canCancel = true
+				}
+				imgui.EndDisabled()
+
+				imgui.SameLineV(0, 4)
+				imgui.BeginDisabledV(!canCancel)
+				if imgui.Button("Cancel") {
+					cancel()
+					writeLog("Plase Wait For Cancellation")
+					canUnpack = false
 					canCancel = false
 				}
-			}()
+				imgui.EndDisabled()
 
-			progress = 0
-			canUnpack = false
-			canCancel = true
+				imgui.SameLineV(0, 12)
+				if imgui.Button("Offset Unit") {
+					switch offsetUnit {
+					case OffsetUnitDecimal:
+						offsetUnit = OffsetUnitHex
+					case OffsetUnitHex:
+						offsetUnit = OffsetUnitDecimal
+					}
+				}
+
+				if tm3Data != nil {
+					imgui.SameLineV(0, 12)
+					imgui.Text(fmt.Sprintf("Entries: %d", tm3Data.EntryTotal))
+
+					if !canUnpack && canCancel {
+						imgui.SameLineV(0, 12)
+						imgui.Text(fmt.Sprintf("Progress: %.f%%%%", progress*100))
+					}
+				}
+
+			}
+
+			{
+				imgui.BeginTableV(
+					"datData",
+					3,
+					imgui.TableFlagsRowBg|
+						imgui.TableFlagsScrollY|
+						imgui.TableFlagsBorders|
+						imgui.TableFlagsSizingStretchSame,
+					imgui.NewVec2(0, 0),
+					0,
+				)
+
+				imgui.TableSetupColumnV("Name", imgui.TableColumnFlagsWidthStretch, 0.5, 0)
+				imgui.TableSetupColumnV("Offset", imgui.TableColumnFlagsWidthStretch, 2, 0)
+				imgui.TableSetupColumnV("Size", imgui.TableColumnFlagsWidthStretch, 1.2, 0)
+				imgui.TableSetupScrollFreeze(0, 1)
+				imgui.TableHeadersRow()
+
+				if tm3Data != nil {
+					for i, entry := range tm3Data.Entries {
+						imgui.TableNextRowV(imgui.TableRowFlagsNone, 0)
+
+						imgui.TableSetColumnIndex(0)
+						imgui.Text(entry.Name)
+
+						imgui.TableSetColumnIndex(1)
+						imgui.PushIDInt(int32(i))
+						if imgui.Button("Copy") {
+							switch offsetUnit {
+							case OffsetUnitDecimal:
+								rl.SetClipboardText(
+									fmt.Sprintf("%d", entry.Offset),
+								)
+							case OffsetUnitHex:
+								rl.SetClipboardText(
+									fmt.Sprintf("0x%X", entry.Offset),
+								)
+							}
+						}
+						imgui.PopID()
+
+						imgui.SameLineV(0, 4)
+						switch offsetUnit {
+						case OffsetUnitDecimal:
+							imgui.Text(fmt.Sprintf("%d", entry.Offset))
+						case OffsetUnitHex:
+							imgui.Text(fmt.Sprintf("0x%X", entry.Offset))
+						}
+
+						imgui.TableSetColumnIndex(2)
+						imgui.Text(fmt.Sprintf("%d", entry.Size))
+					}
+				}
+
+				imgui.EndTable()
+			}
+
+			imgui.End()
 		}
 
-		if !canUnpack {
-			raygui.Enable()
+		{
+			imgui.SetNextWindowClass(noTabBar)
+			imgui.BeginV("Log", nil, imgui.WindowFlagsNone|imgui.WindowFlagsNoTitleBar)
+			{
+				if imgui.Button("Clear") {
+					clearLog()
+				}
+				imgui.SameLineV(0, 4)
+				imgui.Checkbox("Auto Scroll", &logAutoScroll)
+				imgui.BeginChildStrV("LogRegion", imgui.NewVec2(0, 0), imgui.ChildFlagsNavFlattened, imgui.WindowFlagsHorizontalScrollbar)
+				imgui.Text(logs)
+				if logAutoScroll && logUpdate {
+					imgui.SetScrollHereYV(1)
+				}
+				logUpdate = false
+				imgui.EndChild()
+			}
+			imgui.End()
 		}
 
-		if !canCancel {
-			raygui.Disable()
-		}
-
-		if raygui.Button(rl.NewRectangle(width-90, height-40, 82, 32), "Cancel") {
-			cancel()
-			writeLog("Plase Wait For Cancellation")
-			canUnpack = false
-			canCancel = false
-		}
-
-		if !canCancel {
-			raygui.Enable()
-		}
-
+		rl.BeginDrawing()
+		rl.ClearBackground(rl.NewColor(0x12, 0x12, 0x12, 0xFF))
+		rlig.Render()
 		rl.EndDrawing()
 
 	}

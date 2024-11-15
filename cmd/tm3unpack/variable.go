@@ -4,12 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/anasrar/chihuahua/pkg/tm3"
 )
 
 var GitCommitHash = "Dev Mode"
 
 var tm3Path = ""
+var tm3Data *tm3.Tm3 = nil
+
+type OffsetUnit int
+
+const (
+	OffsetUnitDecimal OffsetUnit = iota
+	OffsetUnitHex
+)
+
+var offsetUnit = OffsetUnitHex
 
 var (
 	width  float32 = 600
@@ -23,8 +33,5 @@ var canUnpack = false
 var canCancel = false
 
 var logAutoScroll = true
-var logRectangle = rl.NewRectangle(0, 0, width, height-48)
-var logContentRectangle = rl.NewRectangle(0, 0, width-20, 48)
-var logScroll = rl.NewVector2(0, 0)
-var logView = rl.NewRectangle(0, 0, 0, 0)
+var logUpdate = false
 var logs = fmt.Sprintf("Build %s\nDrag and Drop TM3 File\n", GitCommitHash)
