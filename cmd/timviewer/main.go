@@ -322,7 +322,9 @@ func main() {
 		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.BeginDisabledV(!canConvert)
 		if imgui.Button("Convert To PNG") {
-			convert2png()
+			go func() {
+				convert2png()
+			}()
 		}
 		imgui.EndDisabled()
 		imgui.End()
