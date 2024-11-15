@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 
-	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/anasrar/chihuahua/pkg/dat"
 	"github.com/anasrar/chihuahua/pkg/ems"
 	"github.com/anasrar/chihuahua/pkg/oms"
+	rlig "github.com/anasrar/chihuahua/pkg/raylib_imgui"
 	"github.com/anasrar/chihuahua/pkg/utils"
-	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -101,7 +101,6 @@ func drop(filePath string) error {
 	}
 
 	datPath = filePath
-	modelContentRectangle.Height = float32(24*len(models)) + 4
 
 	return nil
 }
@@ -111,8 +110,9 @@ func main() {
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
-	rayguistyle.Load()
-	defer rayguistyle.Unload()
+	rlig.Load()
+	defer rlig.Unload()
+	imgui.StyleColorsDark()
 
 	checked := rl.GenImageChecked(20, 20, 1, 1, rl.White, rl.Gray)
 	textureDefault = rl.LoadTextureFromImage(checked)
@@ -124,11 +124,11 @@ func main() {
 	rl.EnableDepthMask()
 
 	for !rl.WindowShouldClose() {
+		rlig.Update()
+
 		if rl.IsWindowResized() {
 			width = float32(rl.GetScreenWidth())
 			height = float32(rl.GetScreenHeight())
-
-			tm3PreviewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)
 		}
 
 		if rl.IsFileDropped() {
@@ -175,8 +175,65 @@ func main() {
 			rl.CameraPitch(&camera, -0.5*rl.GetFrameTime(), 0, 0, 0)
 		}
 
+		imgui.NewFrame()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 12), imgui.CondAlways, imgui.NewVec2(1, 0))
+		imgui.BeginV("View", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.ColorEdit3V("Background", &(background), imgui.ColorEditFlagsNoInputs)
+		if imgui.Button("Reset View") {
+			camera.Position = rl.NewVector3(0, 2.8, 2.8)
+			camera.Target = rl.NewVector3(0, 1.2, 0)
+		}
+		imgui.End()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 82), imgui.CondAlways, imgui.NewVec2(1, 0))
+		imgui.SetNextWindowSizeConstraints(imgui.NewVec2(72, 108), imgui.NewVec2(72, 216))
+		imgui.BeginV("TM3", nil, imgui.WindowFlagsNoMove)
+		for _, index := range textureIndices {
+			texture := textures[index]
+
+			imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(42, 42))
+		}
+		imgui.End()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
+		imgui.BeginV("ToGltf", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.BeginDisabledV(scp == nil)
+		if imgui.Button("Convert To GLTF") {
+			go func() {
+				log.Println("Convert to GLTF")
+				if err := ConvertToGlft(); err != nil {
+					log.Println(err)
+				} else {
+					log.Println("Convert done")
+				}
+			}()
+		}
+		imgui.EndDisabled()
+		imgui.End()
+
 		rl.BeginDrawing()
-		rl.ClearBackground(background)
+		rl.ClearBackground(
+			rl.NewColor(
+				uint8(background[0]*0xFF),
+				uint8(background[1]*0xFF),
+				uint8(background[2]*0xFF),
+				0xFF,
+			),
+		)
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, 12), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
+		imgui.SetNextWindowSizeV(imgui.NewVec2(200, 300), imgui.CondFirstUseEver)
+		imgui.BeginV("Inspector", nil, imgui.WindowFlagsNone)
+		imgui.Checkbox("Show OMS", &showOms)
+		imgui.Checkbox("Show EMS", &showEms)
+		imgui.Separator()
+		imgui.BeginChildStrV("MdbRegion", imgui.NewVec2(0, 0), imgui.ChildFlagsNavFlattened, imgui.WindowFlagsHorizontalScrollbar)
+		for _, model := range models {
+			imgui.Checkbox(model.Name, &model.Render)
+		}
+		imgui.EndChild()
+		imgui.End()
 
 		rl.BeginMode3D(camera)
 
@@ -224,129 +281,17 @@ func main() {
 		if showOms {
 			for _, obj := range omsEntries {
 				if obj.RenderLabel {
-					screenPosition := rl.GetWorldToScreen(rl.NewVector3(obj.Translation[0], obj.Translation[1]+.4, obj.Translation[2]), camera)
-					raygui.Label(rl.NewRectangle(screenPosition.X, screenPosition.Y, 120, 18), obj.Name)
+					position := imgui.MousePos()
+					imgui.SetNextWindowPosV(imgui.NewVec2(position.X, position.Y), imgui.CondAlways, imgui.NewVec2(0, 1))
+					imgui.BeginV("Information", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar|imgui.WindowFlagsNoFocusOnAppearing)
+					imgui.Text(obj.Name)
+					imgui.End()
 				}
 			}
 		}
 
-		raygui.ScrollPanel(
-			modelRectangle,
-			"",
-			modelContentRectangle,
-			&modelScroll,
-			&modelView,
-		)
-
-		// rl.DrawRectangle(
-		// 	int32(modelRectangle.X+modelScroll.X),
-		// 	int32(modelRectangle.Y+modelScroll.Y),
-		// 	int32(modelContentRectangle.Width),
-		// 	int32(modelContentRectangle.Height),
-		// 	rl.Fade(rl.Red, 0.1),
-		// )
-
-		rl.BeginScissorMode(
-			int32(modelView.X),
-			int32(modelView.Y),
-			int32(modelView.Width),
-			int32(modelView.Height),
-		)
-
-		{
-			y := modelRectangle.Y + modelScroll.Y
-			for i, model := range models {
-				rect := rl.NewRectangle(12, (24*float32(i))+4+y, 24, 24)
-				inside := rl.CheckCollisionRecs(rect, modelRectangle)
-
-				if inside {
-					check := rl.NewRectangle(12, (24*float32(i))+4+y, 14, 14)
-					r := rl.GetCollisionRec(check, modelRectangle)
-					model.Render = raygui.CheckBox(r, model.Name, model.Render)
-				}
-			}
-		}
-
-		rl.EndScissorMode()
-
-		showOms = raygui.CheckBox(rl.NewRectangle(8, 218, 14, 14), "Show OMS", showOms)
-		showEms = raygui.CheckBox(rl.NewRectangle(8, 240, 14, 14), "Show EMS", showEms)
-
-		if scp == nil {
-			raygui.Disable()
-		}
-		if raygui.Button(rl.NewRectangle(8, height-40, 132, 32), "Convert To GLTF") {
-			go func() {
-				log.Println("Convert to GLTF")
-				if err := ConvertToGlft(); err != nil {
-					log.Println(err)
-				} else {
-					log.Println("Convert done")
-				}
-			}()
-		}
-		if scp == nil {
-			raygui.Enable()
-		}
-
-		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
-
-		raygui.ScrollPanel(
-			tm3PreviewRectangle,
-			"",
-			tm3PreviewContentRectangle,
-			&tm3PreviewScroll,
-			&tm3PreviewView,
-		)
-
-		// rl.DrawRectangle(
-		// 	int32(previewRectangle.X+previewScroll.X),
-		// 	int32(previewRectangle.Y+previewScroll.Y),
-		// 	int32(previewContentRectangle.Width),
-		// 	int32(previewContentRectangle.Height),
-		// 	rl.Fade(rl.Red, 0.1),
-		// )
-
-		rl.BeginScissorMode(
-			int32(tm3PreviewView.X),
-			int32(tm3PreviewView.Y),
-			int32(tm3PreviewView.Width),
-			int32(tm3PreviewView.Height),
-		)
-
-		{
-			y := tm3PreviewRectangle.Y + tm3PreviewScroll.Y
-
-			for i, index := range textureIndices {
-				rect := rl.NewRectangle(width-73, float32(i)*42+y+1, 42, 42)
-				isInside := rl.CheckCollisionRecs(tm3PreviewRectangle, rect)
-				if !isInside {
-					continue
-				}
-
-				texture := textures[index]
-
-				rl.DrawTexturePro(
-					texture.Texture,
-					rl.NewRectangle(0, 0, float32(texture.Texture.Width), float32(texture.Texture.Height)),
-					rl.NewRectangle(width-73, float32(i)*42+y+1, 42, 42),
-					rl.Vector2Zero(),
-					0,
-					rl.White,
-				)
-
-			}
-		}
-
-		rl.EndScissorMode()
-
-		if raygui.Button(rl.NewRectangle(width-116, height-40, 108, 32), "Reset View") {
-			camera.Position = rl.NewVector3(0, 2.8, 2.8)
-			camera.Target = rl.NewVector3(0, 1.2, 0)
-		}
-
+		rlig.Render()
 		rl.EndDrawing()
-
 	}
 
 	for _, model := range models {

@@ -52,8 +52,6 @@ func LoadTextures(datPath string, offset uint32, size uint32) error {
 		textureIndices = append(textureIndices, i)
 	}
 
-	tm3PreviewContentRectangle.Height = float32(tm.EntryTotal*42) + 1
-
 	for _, model := range models {
 		if texture, found := textures[model.Texture]; found {
 			rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
