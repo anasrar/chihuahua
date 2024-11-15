@@ -144,7 +144,7 @@ func drop(filePath string) error {
 			defer rl.UnloadImage(img)
 
 			texture := rl.LoadTextureFromImage(img)
-			textures[i] = NewTexture(texture)
+			textures[i] = NewTexture(tim.Pictures[0], texture)
 
 			textureIndices = append(textureIndices, i)
 		}
@@ -258,8 +258,21 @@ func main() {
 		imgui.BeginV("TM3", nil, imgui.WindowFlagsNoMove)
 		for _, index := range textureIndices {
 			texture := textures[index]
-
 			imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(42, 42))
+			if imgui.BeginItemTooltip() {
+				imgui.Text(
+					fmt.Sprintf(
+						"%dx%d\n%s\n%s\nClut Colors %d",
+						texture.Picture.ImageWidth,
+						texture.Picture.ImageHeight,
+						texture.Picture.ClutType,
+						texture.Picture.ImageType,
+						texture.Picture.ClutColors,
+					),
+				)
+				imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(float32(texture.Texture.Width), float32(texture.Texture.Height)))
+				imgui.EndTooltip()
+			}
 		}
 		imgui.End()
 

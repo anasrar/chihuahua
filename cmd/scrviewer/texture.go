@@ -1,13 +1,18 @@
 package main
 
-import rl "github.com/gen2brain/raylib-go/raylib"
+import (
+	"github.com/anasrar/chihuahua/pkg/tim2"
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
 
 type Texture struct {
+	Picture *tim2.Picture
 	Texture rl.Texture2D
 }
 
-func NewTexture(texture rl.Texture2D) *Texture {
+func NewTexture(picture *tim2.Picture, texture rl.Texture2D) *Texture {
 	return &Texture{
+		Picture: picture,
 		Texture: texture,
 	}
 }

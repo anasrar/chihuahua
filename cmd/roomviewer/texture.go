@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"image/png"
 
+	"github.com/anasrar/chihuahua/pkg/tim2"
 	"github.com/anasrar/chihuahua/pkg/tim3"
 	"github.com/anasrar/chihuahua/pkg/tm3"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type Texture struct {
+	Picture *tim2.Picture
 	Texture rl.Texture2D
 }
 
-func NewTexture(texture rl.Texture2D) *Texture {
+func NewTexture(picture *tim2.Picture, texture rl.Texture2D) *Texture {
 	return &Texture{
+		Picture: picture,
 		Texture: texture,
 	}
 }
@@ -47,7 +50,7 @@ func LoadTextures(datPath string, offset uint32, size uint32) error {
 		defer rl.UnloadImage(img)
 
 		texture := rl.LoadTextureFromImage(img)
-		textures[i] = NewTexture(texture)
+		textures[i] = NewTexture(tim.Pictures[0], texture)
 
 		textureIndices = append(textureIndices, i)
 	}
