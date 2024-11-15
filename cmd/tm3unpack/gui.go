@@ -158,7 +158,7 @@ func gui() {
 
 			{
 				imgui.BeginTableV(
-					"datData",
+					"tm3Data",
 					3,
 					imgui.TableFlagsRowBg|
 						imgui.TableFlagsScrollY|
