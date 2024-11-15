@@ -6,13 +6,13 @@ import (
 	"image/png"
 	"log"
 
-	rayguistyle "github.com/anasrar/chihuahua/internal/raygui_style"
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/anasrar/chihuahua/pkg/dat"
+	rlig "github.com/anasrar/chihuahua/pkg/raylib_imgui"
 	"github.com/anasrar/chihuahua/pkg/scr"
 	"github.com/anasrar/chihuahua/pkg/tim3"
 	"github.com/anasrar/chihuahua/pkg/tm3"
 	"github.com/anasrar/chihuahua/pkg/utils"
-	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -54,7 +54,6 @@ func loadModel(index int) error {
 			textureIndices = append(textureIndices, i)
 		}
 
-		tm3PreviewContentRectangle.Height = float32(tm.EntryTotal*42) + 1
 		textureShift = 0
 	}
 
@@ -191,8 +190,6 @@ func loadModel(index int) error {
 				)
 			}
 		}
-
-		modelContentRectangle.Height = float32(24*len(models)) + 4
 	}
 
 	modelIndex = index
@@ -234,9 +231,6 @@ func drop(filePath string) error {
 	mdEntries = tmpMdEntries
 	motEntries = tmpMotEntries
 
-	mdContentRectangle.Height = float32(len(mdEntries))*24 + 8
-	// motContentRectangle.Height = float32(len(motEntries))*24 + 8
-
 	if err := loadModel(0); err != nil {
 		return err
 	}
@@ -256,8 +250,9 @@ func main() {
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(30)
 
-	rayguistyle.Load()
-	defer rayguistyle.Unload()
+	rlig.Load()
+	defer rlig.Unload()
+	imgui.StyleColorsDark()
 
 	checked := rl.GenImageChecked(20, 20, 1, 1, rl.White, rl.Gray)
 	textureDefault = rl.LoadTextureFromImage(checked)
@@ -272,11 +267,11 @@ func main() {
 	defer rl.UnloadRenderTexture(boneRender)
 
 	for !rl.WindowShouldClose() {
+		rlig.Update()
+
 		if rl.IsWindowResized() {
 			width = float32(rl.GetScreenWidth())
 			height = float32(rl.GetScreenHeight())
-
-			tm3PreviewRectangle = rl.NewRectangle(width-74, 58, 64, height-108)
 
 			rl.UnloadRenderTexture(boneRender)
 			boneRender = rl.LoadRenderTexture(int32(width), int32(height))
@@ -326,8 +321,100 @@ func main() {
 			rl.CameraPitch(&camera, -0.5*rl.GetFrameTime(), 0, 0, 0)
 		}
 
+		imgui.NewFrame()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 12), imgui.CondAlways, imgui.NewVec2(1, 0))
+		imgui.BeginV("View", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.ColorEdit3V("Background", &(background), imgui.ColorEditFlagsNoInputs)
+		if imgui.Button("Reset View") {
+			camera.Position = rl.NewVector3(0, 2.8, 2.8)
+			camera.Target = rl.NewVector3(0, 1.2, 0)
+		}
+		imgui.End()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 82), imgui.CondAlways, imgui.NewVec2(1, 0))
+		imgui.SetNextWindowSizeConstraints(imgui.NewVec2(72, 108), imgui.NewVec2(72, 216))
+		imgui.BeginV("TM3", nil, imgui.WindowFlagsNoMove)
+		for _, index := range textureIndices {
+			texture := textures[index]
+			imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(42, 42))
+		}
+		imgui.End()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, 12), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
+		imgui.SetNextWindowSizeV(imgui.NewVec2(200, 200), imgui.CondFirstUseEver)
+		imgui.BeginV("MD", nil, imgui.WindowFlagsNone)
+		for i, entry := range mdEntries {
+			imgui.PushIDStr(entry.Name)
+			imgui.BeginDisabledV(i == modelIndex)
+			if imgui.Button("View") {
+				if err := loadModel(i); err != nil {
+					log.Println(err)
+				}
+			}
+			imgui.EndDisabled()
+			imgui.PopID()
+			imgui.SameLineV(0, 4)
+			imgui.Text(entry.Name)
+		}
+		imgui.End()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, 224), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
+		imgui.SetNextWindowSizeV(imgui.NewVec2(200, 300), imgui.CondFirstUseEver)
+		imgui.BeginV("Inspector", nil, imgui.WindowFlagsNone)
+		imgui.BeginDisabledV(textureTotal == 0)
+		if imgui.Button("Shift -1") {
+			textureShift = (textureShift - 1) % textureTotal
+			for _, model := range models {
+				if texture, found := textures[model.Texture+textureShift]; found {
+					rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
+				} else {
+					rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, textureDefault)
+				}
+			}
+		}
+		imgui.SameLineV(0, 4)
+		if imgui.Button("Shift +1") {
+			textureShift = (textureShift + 1) % textureTotal
+			for _, model := range models {
+				if texture, found := textures[model.Texture+textureShift]; found {
+					rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
+				} else {
+					rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, textureDefault)
+				}
+			}
+		}
+		imgui.EndDisabled()
+		imgui.Checkbox("Show Bones", &showBones)
+		imgui.BeginDisabledV(len(models) == 0)
+		if imgui.Button("Convert To GLTF") {
+			go func() {
+				log.Println("Convert Model to GLTF")
+				if err := ConvertModelToGlft(datPath, tm3Entries[modelIndex], mdEntries[modelIndex], textureShift); err != nil {
+					log.Println(err)
+				} else {
+					log.Println("Convert done")
+				}
+			}()
+		}
+		imgui.EndDisabled()
+		imgui.Separator()
+		imgui.BeginChildStrV("MdbRegion", imgui.NewVec2(0, 0), imgui.ChildFlagsNavFlattened, imgui.WindowFlagsHorizontalScrollbar)
+		for _, model := range models {
+			imgui.Checkbox(model.Name, &model.Render)
+		}
+		imgui.EndChild()
+		imgui.End()
+
 		rl.BeginDrawing()
-		rl.ClearBackground(background)
+		rl.ClearBackground(
+			rl.NewColor(
+				uint8(background[0]*0xFF),
+				uint8(background[1]*0xFF),
+				uint8(background[2]*0xFF),
+				0xFF,
+			),
+		)
 
 		rl.BeginMode3D(camera)
 
@@ -363,262 +450,8 @@ func main() {
 			rl.DrawTextureRec(boneRender.Texture, rl.NewRectangle(0, 0, width, -height), rl.Vector2Zero(), rl.White)
 		}
 
-		raygui.ScrollPanel(
-			mdRectangle,
-			"",
-			mdContentRectangle,
-			&mdScroll,
-			&mdView,
-		)
-
-		// rl.DrawRectangle(
-		// 	int32(mdRectangle.X+mdScroll.X),
-		// 	int32(mdRectangle.Y+mdScroll.Y),
-		// 	int32(mdContentRectangle.Width),
-		// 	int32(mdContentRectangle.Height),
-		// 	rl.Fade(rl.Red, 0.1),
-		// )
-
-		rl.BeginScissorMode(
-			int32(mdView.X),
-			int32(mdView.Y),
-			int32(mdView.Width),
-			int32(mdView.Height),
-		)
-
-		{
-			y := mdRectangle.Y + mdScroll.Y
-			mousePosition := rl.GetMousePosition()
-			for i, entry := range mdEntries {
-				rect := rl.NewRectangle(12, (24*float32(i))+4+y, mdContentRectangle.Width, 24)
-				inside := rl.CheckCollisionRecs(rect, mdRectangle)
-
-				if inside {
-					r := rl.GetCollisionRec(rect, mdRectangle)
-					hover := rl.CheckCollisionPointRec(mousePosition, r)
-
-					if hover {
-						rl.DrawRectangleRec(r, rl.NewColor(0x2A, 0x2A, 0x2A, 0xFF))
-
-						if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && i != modelIndex {
-							if err := loadModel(i); err != nil {
-								log.Println(err)
-							}
-						}
-					} else if i == modelIndex {
-						rl.DrawRectangleRec(r, rl.NewColor(0x1F, 0x1F, 0x1F, 0xFF))
-					}
-
-					raygui.Label(rect, entry.Name)
-				}
-			}
-		}
-
-		rl.EndScissorMode()
-
-		raygui.ScrollPanel(
-			modelRectangle,
-			"",
-			modelContentRectangle,
-			&modelScroll,
-			&modelView,
-		)
-
-		// rl.DrawRectangle(
-		// 	int32(modelRectangle.X+modelScroll.X),
-		// 	int32(modelRectangle.Y+modelScroll.Y),
-		// 	int32(modelContentRectangle.Width),
-		// 	int32(modelContentRectangle.Height),
-		// 	rl.Fade(rl.Red, 0.1),
-		// )
-
-		rl.BeginScissorMode(
-			int32(modelView.X),
-			int32(modelView.Y),
-			int32(modelView.Width),
-			int32(modelView.Height),
-		)
-
-		{
-			y := modelRectangle.Y + modelScroll.Y
-			for i, model := range models {
-				rect := rl.NewRectangle(12, (24*float32(i))+4+y, 24, 24)
-				inside := rl.CheckCollisionRecs(rect, modelRectangle)
-
-				if inside {
-					check := rl.NewRectangle(12, (24*float32(i))+4+y, 14, 14)
-					r := rl.GetCollisionRec(check, modelRectangle)
-					model.Render = raygui.CheckBox(r, model.Name, model.Render)
-				}
-			}
-		}
-
-		rl.EndScissorMode()
-
-		{
-			if textureTotal == 0 {
-				raygui.Disable()
-			}
-
-			if raygui.Button(rl.NewRectangle(8, 428, 87, 32), "Shift -1") {
-				textureShift = (textureShift - 1) % textureTotal
-				for _, model := range models {
-					if texture, found := textures[model.Texture+textureShift]; found {
-						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
-					} else {
-						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, textureDefault)
-					}
-				}
-			}
-
-			if raygui.Button(rl.NewRectangle(103, 428, 87, 32), "Shift +1") {
-				textureShift = (textureShift + 1) % textureTotal
-				for _, model := range models {
-					if texture, found := textures[model.Texture+textureShift]; found {
-						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, texture.Texture)
-					} else {
-						rl.SetMaterialTexture(model.Model.Materials, rl.MapDiffuse, textureDefault)
-					}
-				}
-			}
-
-			if textureTotal == 0 {
-				raygui.Enable()
-			}
-		}
-
-		showBones = raygui.CheckBox(rl.NewRectangle(8, 468, 14, 14), "Show Bones", showBones)
-
-		if !hasModel {
-			raygui.Disable()
-		}
-
-		if raygui.Button(rl.NewRectangle(8, 492, 132, 32), "Convert To GLTF") {
-			go func() {
-				log.Println("Convert Model to GLTF")
-				if err := ConvertModelToGlft(datPath, tm3Entries[modelIndex], mdEntries[modelIndex], textureShift); err != nil {
-					log.Println(err)
-				} else {
-					log.Println("Convert done")
-				}
-			}()
-		}
-
-		if !hasModel {
-			raygui.Enable()
-		}
-
-		// raygui.ScrollPanel(
-		// 	motRectangle,
-		// 	"",
-		// 	motContentRectangle,
-		// 	&motScroll,
-		// 	&motView,
-		// )
-
-		// rl.DrawRectangle(
-		//      int32(motRectangle.X+motScroll.X),
-		//      int32(motRectangle.Y+motScroll.Y),
-		//      int32(motContentRectangle.Width),
-		//      int32(motContentRectangle.Height),
-		//      rl.Fade(rl.Red, 0.1),
-		// )
-
-		// rl.BeginScissorMode(
-		// 	int32(motView.X),
-		// 	int32(motView.Y),
-		// 	int32(motView.Width),
-		// 	int32(motView.Height),
-		// )
-
-		// {
-		// 	y := motRectangle.Y + motScroll.Y
-		// 	mousePosition := rl.GetMousePosition()
-		// 	for i, entry := range motEntries {
-		// 		rect := rl.NewRectangle(12, (24*float32(i))+4+y, motContentRectangle.Width, 24)
-		// 		inside := rl.CheckCollisionRecs(rect, motRectangle)
-
-		// 		if inside {
-		// 			r := rl.GetCollisionRec(rect, motRectangle)
-		// 			hover := rl.CheckCollisionPointRec(mousePosition, r)
-
-		// 			if hover {
-		// 				rl.DrawRectangleRec(r, rl.NewColor(0x2A, 0x2A, 0x2A, 0xFF))
-
-		// 				if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
-		// 					go func() {
-		// 						loadMotion(i)
-		// 					}()
-		// 				}
-		// 			} else if i == motionIndex {
-		// 				rl.DrawRectangleRec(r, rl.NewColor(0x1F, 0x1F, 0x1F, 0xFF))
-		// 			}
-
-		// 			raygui.Label(rect, entry.Name)
-		// 		}
-		// 	}
-		// }
-
-		// rl.EndScissorMode()
-
-		background = raygui.ColorPicker(rl.NewRectangle(width-74, 8, 42, 42), "", background)
-
-		raygui.ScrollPanel(
-			tm3PreviewRectangle,
-			"",
-			tm3PreviewContentRectangle,
-			&tm3PreviewScroll,
-			&tm3PreviewView,
-		)
-
-		// rl.DrawRectangle(
-		// 	int32(previewRectangle.X+previewScroll.X),
-		// 	int32(previewRectangle.Y+previewScroll.Y),
-		// 	int32(previewContentRectangle.Width),
-		// 	int32(previewContentRectangle.Height),
-		// 	rl.Fade(rl.Red, 0.1),
-		// )
-
-		rl.BeginScissorMode(
-			int32(tm3PreviewView.X),
-			int32(tm3PreviewView.Y),
-			int32(tm3PreviewView.Width),
-			int32(tm3PreviewView.Height),
-		)
-
-		{
-			y := tm3PreviewRectangle.Y + tm3PreviewScroll.Y
-
-			for i, index := range textureIndices {
-				rect := rl.NewRectangle(width-73, float32(i)*42+y+1, 42, 42)
-				isInside := rl.CheckCollisionRecs(tm3PreviewRectangle, rect)
-				if !isInside {
-					continue
-				}
-
-				texture := textures[index]
-
-				rl.DrawTexturePro(
-					texture.Texture,
-					rl.NewRectangle(0, 0, float32(texture.Texture.Width), float32(texture.Texture.Height)),
-					rl.NewRectangle(width-73, float32(i)*42+y+1, 42, 42),
-					rl.Vector2Zero(),
-					0,
-					rl.White,
-				)
-
-			}
-		}
-
-		rl.EndScissorMode()
-
-		if raygui.Button(rl.NewRectangle(width-116, height-40, 108, 32), "Reset View") {
-			camera.Position = rl.NewVector3(0, 2.8, 2.8)
-			camera.Target = rl.NewVector3(0, 1.2, 0)
-		}
-
+		rlig.Render()
 		rl.EndDrawing()
-
 	}
 
 	for _, model := range models {
