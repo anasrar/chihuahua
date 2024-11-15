@@ -69,9 +69,9 @@ jobs:
         shell: C:/Program\ Files/Git/bin/bash.exe {0}
         run: |
           mkdir output
-          go build -v -o output/datpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datpack/*.go
+          go build -v -o output/datpack_win.exe --ldflags="-s -w" cmd/datpack/*.go
           echo "Windows: datpack"
-          go build -v -o output/datunpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/datunpack/*.go
+          go build -v -o output/datunpack_win.exe --ldflags="-s -w" cmd/datunpack/*.go
           echo "Windows: datunpack"
           go build -v -o output/modelviewer_win.exe --ldflags="-s -w" cmd/modelviewer/*.go
           echo "Windows: modelviewer"
@@ -83,9 +83,9 @@ jobs:
           echo "Windows: t32viewer"
           go build -v -o output/timviewer_win.exe --ldflags="-s -w" cmd/timviewer/*.go
           echo "Windows: timviewer"
-          go build -v -o output/tm3pack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3pack/*.go
+          go build -v -o output/tm3pack_win.exe --ldflags="-s -w" cmd/tm3pack/*.go
           echo "Windows: tm3pack"
-          go build -v -o output/tm3unpack_win.exe --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3unpack/*.go
+          go build -v -o output/tm3unpack_win.exe --ldflags="-s -w" cmd/tm3unpack/*.go
           echo "Windows: tm3unpack"
 
       - name: Create Release and Upload Assets
