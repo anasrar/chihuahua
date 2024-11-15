@@ -7,7 +7,9 @@ import (
 	"log"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/anasrar/chihuahua/pkg/bone"
 	"github.com/anasrar/chihuahua/pkg/dat"
+	"github.com/anasrar/chihuahua/pkg/mot"
 	rlig "github.com/anasrar/chihuahua/pkg/raylib_imgui"
 	"github.com/anasrar/chihuahua/pkg/scr"
 	"github.com/anasrar/chihuahua/pkg/tim3"
@@ -190,10 +192,28 @@ func loadModel(index int) error {
 				)
 			}
 		}
+
+		boneTree = NewBoneNode(bone.New(0, "root", 0, 0, 0, 0, 0, 0, -1))
+		boneNodes = []*BoneNode{boneTree}
+
+		for _, bone := range s.Nodes[0].Mdb.Bones {
+			node := NewBoneNode(bone)
+			boneNodes = append(boneNodes, node)
+
+			boneNodes[bone.Parent].Children = append(
+				boneNodes[bone.Parent].Children,
+				node,
+			)
+		}
 	}
 
 	modelIndex = index
-	// motionIndex = -1
+	motionIndex = -1
+
+	frames = [][]*bone.Bone{}
+	frameTotal = int32(0)
+	frameIndex = int32(0)
+	framePlay = false
 
 	return nil
 }
@@ -239,11 +259,55 @@ func drop(filePath string) error {
 	return nil
 }
 
-// func loadMotion(index int) error {
-// 	log.Println("TODO: implement load motion")
-// 	motionIndex = index
-// 	return nil
-// }
+func loadMotion(index int) error {
+	motEntry := motEntries[index]
+
+	m := mot.New()
+	if err := mot.FromPathWithOffsetSize(m, motEntry.Source, motEntry.Offset, motEntry.Size); err != nil {
+		return err
+	}
+
+	frames = [][]*bone.Bone{}
+
+	for range m.FrameTotal {
+		bones := []*bone.Bone{}
+		for _, node := range boneNodes {
+			bones = append(bones, bone.New(node.Bone.Index, node.Bone.Name, 0, 0, 0, 0, 0, 0, node.Bone.Parent))
+		}
+		frames = append(frames, bones)
+	}
+
+	for _, record := range m.Records {
+		if record.IsNull {
+			continue
+		}
+
+		values := record.QuantizeHermite(m.FrameTotal)
+
+		for frame, value := range values {
+			switch record.Channel {
+			case 16:
+				frames[frame][record.Target].Translation[0] = value
+			case 17:
+				frames[frame][record.Target].Translation[1] = value
+			case 18:
+				frames[frame][record.Target].Translation[2] = value
+			case 19:
+				frames[frame][record.Target].Rotation[0] = value
+			case 20:
+				frames[frame][record.Target].Rotation[1] = value
+			case 21:
+				frames[frame][record.Target].Rotation[2] = value
+			}
+		}
+	}
+
+	motionIndex = index
+	frameIndex = 0
+	frameTotal = int32(m.FrameTotal - 1)
+	framePlay = true
+	return nil
+}
 
 func main() {
 	rl.InitWindow(int32(width), int32(height), "Model Viewer")
@@ -319,6 +383,10 @@ func main() {
 		}
 		if rl.IsKeyDown(rl.KeyDown) {
 			rl.CameraPitch(&camera, -0.5*rl.GetFrameTime(), 0, 0, 0)
+		}
+
+		if framePlay {
+			frameIndex = (frameIndex + 1) % frameTotal
 		}
 
 		imgui.NewFrame()
@@ -406,6 +474,31 @@ func main() {
 		imgui.EndChild()
 		imgui.End()
 
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, 536), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
+		imgui.SetNextWindowSizeV(imgui.NewVec2(200, 240), imgui.CondFirstUseEver)
+		imgui.BeginV("MOT", nil, imgui.WindowFlagsNoFocusOnAppearing)
+		imgui.BeginDisabledV(motionIndex == -1)
+		imgui.Checkbox("Play", &framePlay)
+		imgui.SliderInt("Frame", &(frameIndex), 0, int32(frameTotal))
+		imgui.EndDisabled()
+		imgui.Separator()
+		imgui.BeginChildStrV("MotRegion", imgui.NewVec2(0, 0), imgui.ChildFlagsNavFlattened, imgui.WindowFlagsHorizontalScrollbar)
+		for i, entry := range motEntries {
+			imgui.PushIDStr(entry.Name)
+			imgui.BeginDisabledV(i == motionIndex)
+			if imgui.Button("Play") {
+				if err := loadMotion(i); err != nil {
+					log.Println(err)
+				}
+			}
+			imgui.EndDisabled()
+			imgui.PopID()
+			imgui.SameLineV(0, 4)
+			imgui.Text(entry.Name)
+		}
+		imgui.EndChild()
+		imgui.End()
+
 		rl.BeginDrawing()
 		rl.ClearBackground(
 			rl.NewColor(
@@ -434,14 +527,18 @@ func main() {
 			rl.ClearBackground(rl.NewColor(0, 0, 0, 0))
 			rl.BeginMode3D(camera)
 
-			model := models[0]
+			if motionIndex == -1 {
+				model := models[0]
 
-			rl.DrawCube(rl.Vector3Zero(), .02, .02, .02, rl.Green)
-			bones := model.Model.GetBones()
-			pose := model.Model.GetBindPose()
-			for j := int32(1); j < model.Model.BoneCount; j++ {
-				rl.DrawCube(pose[j].Translation, .02, .02, .02, rl.Green)
-				rl.DrawLine3D(pose[j].Translation, pose[bones[j].Parent].Translation, rl.Green)
+				rl.DrawCube(rl.Vector3Zero(), .02, .02, .02, rl.Green)
+				bones := model.Model.GetBones()
+				pose := model.Model.GetBindPose()
+				for j := int32(1); j < model.Model.BoneCount; j++ {
+					rl.DrawCube(pose[j].Translation, .02, .02, .02, rl.Green)
+					rl.DrawLine3D(pose[j].Translation, pose[bones[j].Parent].Translation, rl.Green)
+				}
+			} else {
+				DrawBoneTree(boneTree, frameIndex)
 			}
 
 			rl.EndMode3D()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/anasrar/chihuahua/pkg/bone"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -32,9 +33,15 @@ var modelIndex = 0
 
 var showBones = false
 var boneRender rl.RenderTexture2D
+var boneTree = NewBoneNode(bone.New(0, "root", 0, 0, 0, 0, 0, 0, -1))
+var boneNodes = []*BoneNode{boneTree}
 
 var motEntries = []*Entry{}
+var motionIndex = -1
 
-// var motionIndex = -1
+var frames = [][]*bone.Bone{} // NOTE: frames -> bone
+var frameTotal = int32(0)
+var frameIndex = int32(0)
+var framePlay = false
 
 var background = [3]float32{0.071, 0.071, 0.071}
