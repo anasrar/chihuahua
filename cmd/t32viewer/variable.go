@@ -4,7 +4,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-var timPath = ""
+var t32Path = ""
 
 var (
 	width  float32 = 600

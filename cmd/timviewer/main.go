@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/anasrar/chihuahua/pkg/buffer"
@@ -201,7 +202,7 @@ func convert2png() {
 	}
 	entry := entries[currentEntry]
 
-	pngFile, err := os.OpenFile(fmt.Sprintf("%s/%s.png", utils.ParentDirectory(timPath), entry.Name), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	pngFile, err := os.OpenFile(filepath.Join(utils.ParentDirectory(timPath), fmt.Sprintf("%s.png", entry.Name)), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Println(err)
 		return

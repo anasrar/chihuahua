@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/png"
 	"os"
+	"path/filepath"
 
 	"github.com/anasrar/chihuahua/pkg/tim3"
 	"github.com/anasrar/chihuahua/pkg/tm3"
@@ -68,10 +69,12 @@ func ConvertToGlft(
 		return err
 	}
 
-	output := fmt.Sprintf(
-		"%s/GLTF_%s",
+	output := filepath.Join(
 		utils.ParentDirectory(scrPath),
-		utils.Basename(scrPath),
+		fmt.Sprintf(
+			"GLTF_%s",
+			utils.Basename(scrPath),
+		),
 	)
 
 	if err := os.MkdirAll(output, os.ModePerm); err != nil {
@@ -232,7 +235,7 @@ func ConvertToGlft(
 		nodes++
 	}
 
-	if err := gltf.Save(doc, fmt.Sprintf("%s/%s.gltf", output, utils.BasenameWithoutExt(scrPath))); err != nil {
+	if err := gltf.Save(doc, filepath.Join(output, fmt.Sprintf("%s.gltf", utils.BasenameWithoutExt(scrPath)))); err != nil {
 		return err
 	}
 

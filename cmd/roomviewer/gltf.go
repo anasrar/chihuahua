@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/png"
 	"os"
+	"path/filepath"
 
 	"github.com/anasrar/chihuahua/pkg/dat"
 	"github.com/anasrar/chihuahua/pkg/scr"
@@ -156,17 +157,19 @@ func ConvertToGlft() error {
 		}
 	}
 
-	output := fmt.Sprintf(
-		"%s/GLTF_%s",
+	output := filepath.Join(
 		utils.ParentDirectory(datPath),
-		utils.Basename(datPath),
+		fmt.Sprintf("GLTF_%s", utils.Basename(datPath)),
 	)
 
 	if err := os.MkdirAll(output, os.ModePerm); err != nil {
 		return err
 	}
 
-	if err := gltf.Save(doc, fmt.Sprintf("%s/%s.gltf", output, utils.BasenameWithoutExt(datPath))); err != nil {
+	if err := gltf.Save(
+		doc,
+		filepath.Join(output, fmt.Sprintf("%s.gltf", utils.BasenameWithoutExt(datPath))),
+	); err != nil {
 		return err
 	}
 

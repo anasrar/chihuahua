@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/anasrar/chihuahua/pkg/tm3"
 	"github.com/anasrar/chihuahua/pkg/utils"
@@ -32,7 +32,7 @@ func pack(
 
 	for _, entry := range m.Entries {
 		if err := tim.AddEntryFromPathWithName(
-			fmt.Sprintf("%s/%s", parentDir, entry.Source),
+			filepath.Join(parentDir, entry.Source),
 			entry.Name,
 		); err != nil {
 			return err
@@ -41,7 +41,7 @@ func pack(
 
 	if err := tim.Pack(
 		ctx,
-		fmt.Sprintf("%s/OUTPUT.dat", parentDir),
+		filepath.Join(parentDir, "OUTPUT.dat"),
 		onStart,
 		onDone,
 	); err != nil {

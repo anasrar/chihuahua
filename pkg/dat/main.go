@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/anasrar/chihuahua/pkg/buffer"
@@ -193,7 +194,7 @@ func (self *Dat) Unpack(
 
 		onStart(uint32(total), uint32(i+1), filename)
 
-		target := fmt.Sprintf("%s/%s", dir, normalizeType)
+		target := filepath.Join(dir, normalizeType)
 		if err := os.MkdirAll(target, os.ModePerm); err != nil {
 			return err
 		}
@@ -214,7 +215,7 @@ func (self *Dat) Unpack(
 			return err
 		}
 
-		unpackFile, err := os.OpenFile(fmt.Sprintf("%s/%s", target, filename), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		unpackFile, err := os.OpenFile(filepath.Join(target, filename), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}

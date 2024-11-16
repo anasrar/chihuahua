@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/anasrar/chihuahua/pkg/dat"
 	"github.com/anasrar/chihuahua/pkg/utils"
@@ -35,7 +35,9 @@ func pack(
 			d.AddNullEntry()
 		} else {
 			if err := d.AddEntryFromPathWithType(
-				fmt.Sprintf("%s/%s", parentDir, entry.Source),
+				filepath.Join(
+					parentDir, entry.Source,
+				),
 				entry.Type,
 			); err != nil {
 				return err
@@ -45,7 +47,7 @@ func pack(
 
 	if err := d.Pack(
 		ctx,
-		fmt.Sprintf("%s/OUTPUT.dat", parentDir),
+		filepath.Join(parentDir, "OUTPUT.dat"),
 		onStart,
 		onDone,
 	); err != nil {

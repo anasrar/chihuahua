@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/anasrar/chihuahua/pkg/tm3"
 	"github.com/anasrar/chihuahua/pkg/utils"
@@ -21,7 +22,7 @@ func unpack(
 		return err
 	}
 
-	outputMetadataPath := fmt.Sprintf("%s/UNPACK_%s/METADATA.json", utils.ParentDirectory(datPath), utils.Basename(datPath))
+	outputMetadataPath := filepath.Join(utils.ParentDirectory(datPath), fmt.Sprintf("UNPACK_%s", utils.Basename(datPath)), "METADATA.json")
 
 	md := tm3.Metadata{
 		EntryTotal: tim.EntryTotal,
@@ -30,7 +31,7 @@ func unpack(
 
 	for i, entry := range tim.Entries {
 		normalizeName := utils.FilterUnprintableString(entry.Name)
-		source := fmt.Sprintf("FILES/%s_%03d.tm3", normalizeName, i)
+		source := filepath.Join("FILES", fmt.Sprintf("%s_%03d.tm3", normalizeName, i))
 		md.Entries = append(
 			md.Entries,
 			&tm3.MetadataEntry{
@@ -40,7 +41,7 @@ func unpack(
 		)
 	}
 
-	outputFilesDirPath := fmt.Sprintf("%s/UNPACK_%s/FILES", utils.ParentDirectory(datPath), utils.Basename(datPath))
+	outputFilesDirPath := filepath.Join(utils.ParentDirectory(datPath), fmt.Sprintf("UNPACK_%s", utils.Basename(datPath)), "FILES")
 	if err := os.MkdirAll(outputFilesDirPath, os.ModePerm); err != nil {
 		return err
 	}
