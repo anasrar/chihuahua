@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"path"
+	"path/filepath"
 	"strings"
 	"unicode"
 )
@@ -16,13 +16,13 @@ func FilterUnprintableString(str string) string {
 }
 
 func Basename(p string) string {
-	return path.Base(p)
+	return filepath.Base(p)
 }
 
 func BasenameWithoutExt(p string) string {
-	return strings.TrimSuffix(Basename(p), path.Ext(p))
+	return strings.TrimSuffix(Basename(p), filepath.Ext(p))
 }
 
 func ParentDirectory(p string) string {
-	return path.Dir(p)
+	return filepath.Dir(p)
 }
