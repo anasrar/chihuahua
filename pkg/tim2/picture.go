@@ -15,9 +15,9 @@ type Picture struct {
 	ImageWidth     uint16    `json:"image_width"`
 	ImageHeight    uint16    `json:"image_height"`
 	GsTex0         uint64    `json:"gs_tex0"`     // TODO: destruct bit
-	GsTex1         uint64    `json:"gs_tex1"`     // TODO: destruct bit
-	GsRegs         uint32    `json:"gs_regs"`     // TODO: destruct bit
-	GsTexClut      uint32    `json:"ge_tex_clut"` // TODO: destruct bit
+	GsTex1         uint64    `json:"gs_tex1"`     // TODO: destruct bit, NOTE: always 608
+	GsRegs         uint32    `json:"gs_regs"`     // TODO: destruct bit, NOTE: always 0
+	GsTexClut      uint32    `json:"ge_tex_clut"` // TODO: destruct bit, NOTE: always 0
 	ImageData      []byte
 	ClutData       []*color.RGBA
 }

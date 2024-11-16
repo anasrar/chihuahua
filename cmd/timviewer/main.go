@@ -262,6 +262,7 @@ func main() {
 		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 12), imgui.CondAlways, imgui.NewVec2(1, 0))
 		imgui.BeginV("View", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.ColorEdit3V("Background", &(background), imgui.ColorEditFlagsNoInputs)
+		imgui.Checkbox("GS Info", &showGsInfo)
 		if imgui.Button("Reset View") {
 			if currentEntry != -1 {
 				entry := entries[currentEntry]
@@ -292,7 +293,7 @@ func main() {
 		}
 
 		if mode == ModeMultiple {
-			imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 82), imgui.CondAlways, imgui.NewVec2(1, 0))
+			imgui.SetNextWindowPosV(imgui.NewVec2(width-12, 104), imgui.CondAlways, imgui.NewVec2(1, 0))
 			imgui.SetNextWindowSizeConstraints(imgui.NewVec2(84, 108), imgui.NewVec2(84, 216))
 			imgui.BeginV("Entries", nil, imgui.WindowFlagsNoMove)
 			for i, entry := range entries {
@@ -318,7 +319,7 @@ func main() {
 			imgui.End()
 		}
 
-		imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, height-12), imgui.CondAlways, imgui.NewVec2(1, 1))
 		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.BeginDisabledV(!canConvert)
 		if imgui.Button("Convert To PNG") {
@@ -328,6 +329,44 @@ func main() {
 		}
 		imgui.EndDisabled()
 		imgui.End()
+
+		if currentEntry != -1 && showGsInfo {
+			imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
+			imgui.BeginV("Graphic Synthesizer", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+			entry := entries[currentEntry]
+
+			CLD := (entry.Picture.GsTex0 >> 61) & 0x7
+			CSA := (entry.Picture.GsTex0 >> 56) & 0x1F
+			CSM := (entry.Picture.GsTex0 >> 55) & 0x1
+			CPSM := (entry.Picture.GsTex0 >> 51) & 0xF
+			CBP := (entry.Picture.GsTex0 >> 37) & 0x3FFF
+			TFX := (entry.Picture.GsTex0 >> 35) & 0x3
+			TCC := (entry.Picture.GsTex0 >> 34) & 0x1
+			TH := (entry.Picture.GsTex0 >> 30) & 0xF
+			TW := (entry.Picture.GsTex0 >> 26) & 0xF
+			PSM := (entry.Picture.GsTex0 >> 20) & 0x3F
+			TBW := (entry.Picture.GsTex0 >> 14) & 0x3F
+			TBP0 := entry.Picture.GsTex0 & 0x3FFF
+
+			imgui.Text(
+				fmt.Sprintf(
+					"CLUT Buffer Load Control: %d\nCLUT Entry Offset: %d\nCLUT Storage Mode: %d\nCLUT Pixel Storage Format: %d\nCLUT Buffer Base Point: %d\nTexture Function: %d\nTexture Color Component: %d\nTexture Height: %d\nTexture Width: %d\nTexture Pixel Storage Format: %d\nTexture Buffer Width: %d\nTexture Base Point: %d",
+					CLD,
+					CSA,
+					CSM,
+					CPSM,
+					CBP,
+					TFX,
+					TCC,
+					TH,
+					TW,
+					PSM,
+					TBW,
+					TBP0,
+				),
+			)
+			imgui.End()
+		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(
