@@ -76,12 +76,16 @@ Using https://github.com/WerWolv/ImHex to analyze file format. There `pkg/*/*.he
 ## File Format
 
 ```
+AFS: archive file system.
 AKG: see pkg/akg/akg.hexpat.
 AKT: generic dat container, contain AKG.
 CMP: generic dat container, contain MOT.
 EFF: generic dat container, contain TBL and EMD.
+EMS: npc spawn transform.
 ENV: TIM2.
+FST: file system tree.
 MDB: bones, texture index, and vertex buffer.
+OMS: object spawn transform.
 SCP: generic dat container, contain SCR and TM3.
 SCR: container for MDB, contain name and transform.
 MOT: contain animation curve with bone target and channel.
@@ -97,9 +101,9 @@ TM3: TIM3 container.
 
 ```
 elXX: model for cutscene.
-emXX: enemy model.
+emXX: npc model data.
 idXX: generic dat contain UI stuff.
-olXX: object data (breakable, weapon).
+olXX: object model data (breakable, weapon).
 orivia_X: TIM2 image texture on pause menu.
 plXX: playable character data.
 rXXX: (stage) room data.
@@ -112,3 +116,6 @@ rXXX: (stage) room data.
 - https://go.dev/
 - https://www.raylib.com/
 - https://github.com/gen2brain/raylib-go
+- https://github.com/ocornut/imgui
+- https://github.com/cimgui/cimgui
+- https://github.com/AllenDang/cimgui-go
