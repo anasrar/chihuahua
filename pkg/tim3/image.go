@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"os"
 
 	"github.com/anasrar/chihuahua/pkg/buffer"
@@ -170,9 +171,36 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 		return err
 	}
 
-	// TODO: construct GsTex0
+	// DOCS: https://openkh.dev/common/tm2.html#gstex
+	CLD := uint8(0)
+	CSA := uint8(0)
+	CSM := uint8(0)
+	CPSM := uint8(0)
+	CBP := uint64(0)
+	TFX := uint8(0)
+	TCC := uint8(0)
+	TH := uint8(math.Log2(float64(height)))
+	TW := uint8(math.Log2(float64(width)))
+	PSM := uint8(19)
+	TBW := uint8(width / 64)
+	TBP0 := uint32(0)
+
+	gstex0 := uint64(0)
+	gstex0 |= uint64(CLD&0x7) << 61
+	gstex0 |= uint64(CSA&0x1F) << 56
+	gstex0 |= uint64(CSM&0x1) << 55
+	gstex0 |= uint64(CPSM&0xF) << 51
+	gstex0 |= uint64(CBP&0x3FFF) << 37
+	gstex0 |= uint64(TFX&0x3) << 35
+	gstex0 |= uint64(TCC&0x1) << 34
+	gstex0 |= uint64(TH&0xF) << 30
+	gstex0 |= uint64(TW&0xF) << 26
+	gstex0 |= uint64(PSM&0x3F) << 20
+	gstex0 |= uint64(TBW&0x3F) << 14
+	gstex0 |= uint64(TBP0 & 0x3FFF)
+
 	// NOTE: Picture.gs_tex0
-	if _, err := buffer.WriteUint64LE(output, 0); err != nil {
+	if _, err := buffer.WriteUint64LE(output, gstex0); err != nil {
 		return err
 	}
 
