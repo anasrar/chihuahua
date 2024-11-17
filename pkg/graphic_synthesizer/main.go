@@ -206,3 +206,19 @@ func Unswizzle8(data []byte, width int, height int) []byte {
 	ReadTexPSMT8(0, width/64, 0, 0, width, height, result)
 	return result
 }
+
+func Swizzle8(data []byte, width, height int) []byte {
+	result := make([]byte, len(data))
+	for y := range height {
+		for x := range width {
+			block := (y & ^0xF)*width + (x & ^0xF)*2
+			selector := (((y + 2) >> 2) & 0x1) * 4
+			pos := (((y & ^0x3) >> 1) + (y & 1)) & 0x7
+			location := pos*width*2 + ((x+selector)&0x7)*4
+			num := ((y >> 1) & 1) + ((x >> 2) & 2)
+			swizzle := block + location + num
+			result[swizzle] = data[y*width+x]
+		}
+	}
+	return result
+}
