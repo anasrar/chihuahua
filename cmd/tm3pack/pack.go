@@ -41,7 +41,7 @@ func pack(
 
 	if err := tim.Pack(
 		ctx,
-		filepath.Join(parentDir, "OUTPUT.dat"),
+		filepath.Join(parentDir, "OUTPUT.tm3"),
 		onStart,
 		onDone,
 	); err != nil {
