@@ -31,6 +31,22 @@ Unpack generic dat container, support CLI and GUI.
 
 Model viewer for XXX.dat file except `evXXX.dat`, drag and drop `XXX.dat` file, support export as GLTF.
 
+### png2tim
+
+Convert PNG to TIM (only support TIM3), support CLI and GUI, drag and drop PNG.
+
+> [!IMPORTANT]  
+> Only PNG with indexed mode that can be converted and the colors is less than `256`. The result is TIM with `8 bit per pixel`.
+>
+> Width and height should be `2^n`, where max `n` is 9 (to not exceeded PS2 RAM).
+
+> [!TIP]
+> Convert PNG to indexed mode.
+>
+> GIMP: Image > Mode > Indexed.
+>
+> Photoshop: Image > Mode > Indexed Color.
+
 ### roomviewer
 
 Room viewer for rXXX.dat file, drag and drop `rXXX.dat` file, support export as GLTF.
@@ -64,7 +80,6 @@ Using https://github.com/WerWolv/ImHex to analyze file format. There `pkg/*/*.he
 ## TODOS
 
 - [ ] png2tim2
-- [ ] png2tim3
 - [ ] png2t32
 - [ ] mot2gltf
 - [ ] Blender Add-ons: export as SCR room
