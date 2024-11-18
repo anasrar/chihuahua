@@ -29,6 +29,8 @@ jobs:
           echo "Linux: datunpack"
           go build -v -o output/modelviewer_linux --ldflags="-s -w" cmd/modelviewer/*.go
           echo "Linux: modelviewer"
+          go build -v -o output/png2tim_linux --ldflags="-s -w" cmd/png2tim/*.go
+          echo "Linux: png2tim"
           go build -v -o output/roomviewer_linux --ldflags="-s -w" cmd/roomviewer/*.go
           echo "Linux: roomviewer"
           go build -v -o output/scrviewer_linux --ldflags="-s -w" cmd/scrviewer/*.go
@@ -74,6 +76,8 @@ jobs:
           echo "Windows: datunpack"
           go build -v -o output/modelviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/modelviewer/bone_node.go cmd/modelviewer/entry.go cmd/modelviewer/gltf.go cmd/modelviewer/main.go cmd/modelviewer/model.go cmd/modelviewer/texture.go cmd/modelviewer/variable.go
           echo "Windows: modelviewer"
+          go build -v -o output/png2tim_win.exe --ldflags="-extldflags=-static -s -w" cmd/png2tim/convert.go cmd/png2tim/gui.go cmd/png2tim/main.go cmd/png2tim/variable.go
+          echo "Windows: png2tim"
           go build -v -o output/roomviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/roomviewer/gltf.go cmd/roomviewer/main.go cmd/roomviewer/model.go cmd/roomviewer/object.go cmd/roomviewer/texture.go cmd/roomviewer/variable.go
           echo "Windows: roomviewer"
           go build -v -o output/scrviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/scrviewer/bone_node.go cmd/scrviewer/main.go cmd/scrviewer/model.go cmd/scrviewer/texture.go cmd/scrviewer/variable.go
