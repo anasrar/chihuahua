@@ -54,11 +54,15 @@ func PictureToImage(picture *tim2.Picture) *image.NRGBA {
 	return img
 }
 
-func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
+func ImagePalettedToFile(img *image.Paletted, bpp uint, output *os.File) error {
 	colorTotal := len(img.Palette)
 
 	if colorTotal > 256 {
 		return fmt.Errorf("PNG colors exceeds the maximum allowable limit of 256")
+	}
+
+	if bpp == 4 && colorTotal > 16 {
+		return fmt.Errorf("PNG colors greater than 16 can not use 4 bit perpixel")
 	}
 
 	width := img.Rect.Max.X
@@ -67,7 +71,19 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 
 	swizzle := width >= 128 && height >= 128
 	if swizzle {
-		indices = graphicsynthesizer.Swizzle8(indices, width, height)
+		switch bpp {
+		case 4:
+			data := []uint8{}
+			for i := 0; i < len(indices); i += 2 {
+				high := indices[i+1]
+				low := indices[i]
+				value := (high << 4) | low
+				data = append(data, value)
+			}
+			indices = graphicsynthesizer.Swizzle4(data, width, height)
+		case 8:
+			indices = graphicsynthesizer.Swizzle8(indices, width, height)
+		}
 	}
 
 	colors := []*color.RGBA{}
@@ -76,20 +92,25 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 		colors = append(colors, &c32)
 	}
 
-	// NOTE: fill colors to 256
+	// NOTE: fill colors to 16 or 256
 	{
 		diff := 256 - colorTotal
+		if bpp == 4 {
+			diff = 16 - colorTotal
+		}
 		for range diff {
 			colors = append(colors, &color.RGBA{R: 0, G: 0, B: 0, A: 0})
 		}
 	}
 
 	twiddle := []*color.RGBA{}
-	for i := 0; i < 256; i += 32 {
-		twiddle = append(twiddle, colors[i+0:i+8]...)
-		twiddle = append(twiddle, colors[i+16:i+24]...)
-		twiddle = append(twiddle, colors[i+8:i+16]...)
-		twiddle = append(twiddle, colors[i+24:i+32]...)
+	if bpp == 8 {
+		for i := 0; i < 256; i += 32 {
+			twiddle = append(twiddle, colors[i+0:i+8]...)
+			twiddle = append(twiddle, colors[i+16:i+24]...)
+			twiddle = append(twiddle, colors[i+8:i+16]...)
+			twiddle = append(twiddle, colors[i+24:i+32]...)
+		}
 	}
 
 	if _, err := buffer.WriteUint32LE(output, Signature); err != nil {
@@ -117,18 +138,39 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 	}
 
 	// NOTE: Picture.total_size = clut_size + image_size +  header_size
-	if _, err := buffer.WriteUint32LE(output, uint32(1024+(width*height)+48)); err != nil {
-		return err
+	switch bpp {
+	case 4:
+		if _, err := buffer.WriteUint32LE(output, uint32(64+((width*height)/2)+48)); err != nil {
+			return err
+		}
+	case 8:
+		if _, err := buffer.WriteUint32LE(output, uint32(1024+(width*height)+48)); err != nil {
+			return err
+		}
 	}
 
 	// NOTE: Picture.clut_size
-	if _, err := buffer.WriteUint32LE(output, 1024); err != nil {
-		return err
+	switch bpp {
+	case 4:
+		if _, err := buffer.WriteUint32LE(output, 64); err != nil {
+			return err
+		}
+	case 8:
+		if _, err := buffer.WriteUint32LE(output, 1024); err != nil {
+			return err
+		}
 	}
 
 	// NOTE: Picture.image_size
-	if _, err := buffer.WriteUint32LE(output, uint32(width*height)); err != nil {
-		return err
+	switch bpp {
+	case 4:
+		if _, err := buffer.WriteUint32LE(output, uint32((width*height)/2)); err != nil {
+			return err
+		}
+	case 8:
+		if _, err := buffer.WriteUint32LE(output, uint32(width*height)); err != nil {
+			return err
+		}
 	}
 
 	// NOTE: Picture.header_size
@@ -137,8 +179,15 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 	}
 
 	// NOTE: Picture.clut_colors
-	if _, err := buffer.WriteUint16LE(output, 256); err != nil {
-		return err
+	switch bpp {
+	case 4:
+		if _, err := buffer.WriteUint16LE(output, 16); err != nil {
+			return err
+		}
+	case 8:
+		if _, err := buffer.WriteUint16LE(output, 256); err != nil {
+			return err
+		}
 	}
 
 	// NOTE: Picture.pict_format
@@ -156,9 +205,16 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 		return err
 	}
 
-	// NOTE: Picture.image_type = 8bpp
-	if _, err := buffer.WriteUint8(output, 5); err != nil {
-		return err
+	// NOTE: Picture.image_type bpp
+	switch bpp {
+	case 4:
+		if _, err := buffer.WriteUint8(output, 4); err != nil {
+			return err
+		}
+	case 8:
+		if _, err := buffer.WriteUint8(output, 5); err != nil {
+			return err
+		}
 	}
 
 	// NOTE: Picture.image_width
@@ -182,6 +238,9 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 	TH := uint8(math.Log2(float64(height)))
 	TW := uint8(math.Log2(float64(width)))
 	PSM := uint8(19)
+	if bpp == 4 {
+		PSM = 20
+	}
 	TBW := uint8(width / 64)
 	TBP0 := uint32(0)
 
@@ -225,10 +284,20 @@ func ImagePalettedToFile(img *image.Paletted, output *os.File) error {
 	}
 
 	// NOTE: Picture.clut_data
-	for _, c := range twiddle {
-		a := uint8(float32(c.A) / 255 * 0x80)
-		if _, err := buffer.WriteBytes(output, []byte{c.R, c.G, c.B, a}); err != nil {
-			return err
+	switch bpp {
+	case 4:
+		for _, c := range colors {
+			a := uint8(float32(c.A) / 255 * 0x80)
+			if _, err := buffer.WriteBytes(output, []byte{c.R, c.G, c.B, a}); err != nil {
+				return err
+			}
+		}
+	case 8:
+		for _, c := range twiddle {
+			a := uint8(float32(c.A) / 255 * 0x80)
+			if _, err := buffer.WriteBytes(output, []byte{c.R, c.G, c.B, a}); err != nil {
+				return err
+			}
 		}
 	}
 
