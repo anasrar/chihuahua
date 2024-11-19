@@ -30,9 +30,18 @@ func drop(filePath string) error {
 	if !ok {
 		return fmt.Errorf("PNG is not in indexed mode")
 	}
+	colorTotal := len(imgPaletted.Palette)
 
-	if len(imgPaletted.Palette) > 256 {
+	if colorTotal > 256 {
 		return fmt.Errorf("PNG colors exceeds the maximum allowable limit of 256")
+	}
+
+	if colorTotal == 16 {
+		bpp = 4
+		bppIndex = 1
+	} else {
+		bpp = 8
+		bppIndex = 0
 	}
 
 	rlImg := rl.NewImageFromImage(img)
@@ -138,6 +147,35 @@ func gui() {
 		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, height-12), imgui.CondAlways, imgui.NewVec2(1, 1))
 		imgui.BeginV("ToTim", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.BeginDisabledV(!canConvert)
+		imgui.PushIDStr("BitPerPixel")
+		if imgui.BeginComboV("", bpps[bppIndex], imgui.ComboFlagsWidthFitPreview) {
+
+			for i := range bpps {
+				flags := imgui.SelectableFlagsNone
+				if i == 1 && len(colors) > 16 {
+					flags = imgui.SelectableFlagsDisabled
+				}
+
+				selected := i == bppIndex
+				if imgui.SelectableBoolV(bpps[i], selected, flags, imgui.NewVec2(0, 0)) {
+					bppIndex = i
+					switch i {
+					case 0:
+						bpp = 8
+					case 1:
+						bpp = 4
+					}
+				}
+
+				if selected {
+					imgui.SetItemDefaultFocus()
+				}
+			}
+
+			imgui.EndCombo()
+		}
+		imgui.PopID()
+		imgui.SameLineV(0, 4)
 		imgui.PushIDStr("Format")
 		if imgui.BeginComboV("", formats[formatIndex], imgui.ComboFlagsWidthFitPreview) {
 
@@ -164,7 +202,7 @@ func gui() {
 		if imgui.Button("Convert To TIM") {
 			go func() {
 				log.Println("Convert PNG to TIM")
-				if err := convert(pngPath); err != nil {
+				if err := convert(pngPath, bpp); err != nil {
 					log.Println(err)
 				} else {
 					log.Println("Convert done")

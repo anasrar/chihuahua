@@ -11,7 +11,7 @@ import (
 	"github.com/anasrar/chihuahua/pkg/utils"
 )
 
-func convert(pngPath string) error {
+func convert(pngPath string, bpp uint) error {
 	pngFile, err := os.Open(pngPath)
 	if err != nil {
 		return err
@@ -26,9 +26,14 @@ func convert(pngPath string) error {
 	if !ok {
 		return fmt.Errorf("PNG is not in indexed mode")
 	}
+	colorTotal := len(imgPaletted.Palette)
 
-	if len(imgPaletted.Palette) > 256 {
+	if colorTotal > 256 {
 		return fmt.Errorf("PNG colors exceeds the maximum allowable limit of 256")
+	}
+
+	if bpp == 4 && colorTotal > 16 {
+		return fmt.Errorf("PNG colors greater than 16 can not use 4 bit perpixel")
 	}
 
 	output := filepath.Join(
@@ -42,7 +47,7 @@ func convert(pngPath string) error {
 	}
 	defer timFile.Close()
 
-	if err := tim3.ImagePalettedToFile(imgPaletted, timFile); err != nil {
+	if err := tim3.ImagePalettedToFile(imgPaletted, bpp, timFile); err != nil {
 		return err
 	}
 	return nil
