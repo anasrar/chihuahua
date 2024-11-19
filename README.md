@@ -36,7 +36,7 @@ Model viewer for XXX.dat file except `evXXX.dat`, drag and drop `XXX.dat` file, 
 Convert PNG to TIM (only support TIM3), support CLI and GUI, drag and drop PNG.
 
 > [!IMPORTANT]  
-> Only PNG with indexed mode that can be converted and the colors is less than `256`. The result is TIM with `8 bit per pixel`.
+> Only PNG with indexed mode that can be converted and the colors is less than `256`.
 >
 > Width and height should be `2^n`, where max `n` is 9 (to not exceeded PS2 RAM).
 
