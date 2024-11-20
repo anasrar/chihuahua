@@ -33,7 +33,7 @@ Model viewer for XXX.dat file except `evXXX.dat`, drag and drop `XXX.dat` file, 
 
 ### png2tim
 
-Convert PNG to TIM (only support TIM3), support CLI and GUI, drag and drop PNG.
+Convert PNG to TIM (TIM3 and TIM2), support CLI and GUI, drag and drop PNG.
 
 > [!IMPORTANT]  
 > Only PNG with indexed mode that can be converted and the colors is less than `256`.
