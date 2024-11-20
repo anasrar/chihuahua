@@ -8,15 +8,21 @@ import (
 func init() {
 	flag.StringVar(&pngPath, "pngpath", "", "Path to PNG file")
 	flag.UintVar(&bpp, "bpp", 8, "Bit perpixel (4 or 8)")
-	// TODO: format output for tim2
-	// flag.StringVar(&format, "format", "", "Format output")
+	flag.StringVar(&format, "format", "TIM3", "Format output")
 }
 
 func main() {
 	flag.Parse()
 
 	if pngPath != "" {
-		if err := convert(pngPath, bpp); err != nil {
+		switch format {
+		case "TIM3":
+		case "TIM2":
+		default:
+			log.Fatalln("Allowed format is TIM3 and TIM2")
+		}
+
+		if err := convert(pngPath, bpp, format); err != nil {
 			log.Fatalln(err)
 		}
 	} else {

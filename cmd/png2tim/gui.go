@@ -53,7 +53,7 @@ func drop(filePath string) error {
 
 	colors = []color.RGBA{}
 	for _, v := range imgPaletted.Palette {
-		c := v.(color.RGBA)
+		c, _ := v.(color.RGBA)
 		colors = append(colors, color.RGBA{R: c.R, G: c.G, B: c.B, A: c.A})
 	}
 
@@ -181,13 +181,11 @@ func gui() {
 
 			for i := range formats {
 				flags := imgui.SelectableFlagsNone
-				if i == 1 {
-					flags = imgui.SelectableFlagsDisabled
-				}
 
 				selected := i == formatIndex
 				if imgui.SelectableBoolV(formats[i], selected, flags, imgui.NewVec2(0, 0)) {
 					formatIndex = i
+					format = formats[i]
 				}
 
 				if selected {
@@ -202,7 +200,7 @@ func gui() {
 		if imgui.Button("Convert To TIM") {
 			go func() {
 				log.Println("Convert PNG to TIM")
-				if err := convert(pngPath, bpp); err != nil {
+				if err := convert(pngPath, bpp, format); err != nil {
 					log.Println(err)
 				} else {
 					log.Println("Convert done")

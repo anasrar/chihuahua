@@ -8,6 +8,7 @@ import (
 
 var pngPath = ""
 var bpp = uint(8)
+var format = "TIM3"
 
 var (
 	width  float32 = 600
