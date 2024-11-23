@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/png"
 	"log"
 	"os"
@@ -66,6 +67,8 @@ func drop(filePath string) error {
 
 	mode = ModeSingle
 	canConvert = true
+	segment = 0
+	segmentTotal = int32(texture.Height) / 64
 
 	return nil
 }
@@ -94,24 +97,59 @@ func zoom(wheel float32) {
 	)
 }
 
-func convert2png() {
+func copy128x64Pixels(scrImg *image.NRGBA, scrY int32, dstImg *image.NRGBA, dstX, dstY int32) {
+	for y := range 64 {
+		for x := range 128 {
+			c := scrImg.At(x, int(scrY)+y)
+			dstImg.Set(int(dstX)+x, int(dstY)+y, c)
+		}
+	}
+}
+
+func convert2png(segment, segmentTotal int32) error {
 	if currentEntry == -1 {
-		return
+		return fmt.Errorf("T32 not found")
 	}
 	entry := entries[currentEntry]
 
 	pngFile, err := os.OpenFile(filepath.Join(utils.ParentDirectory(t32Path), fmt.Sprintf("%s.png", entry.Name)), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	defer pngFile.Close()
 
-	if _, err := pngFile.Write(entry.Png); err != nil {
-		log.Println(err)
-		return
+	if segment <= 1 {
+		if _, err := pngFile.Write(entry.Png); err != nil {
+			return err
+		}
+	} else {
+		t32Img := t32.T32ToImage(entry.Picture)
+		pngWidth := 128 * segment
+		pngHeight := (segmentTotal / segment) * 64
+		pngImg := image.NewNRGBA(image.Rect(0, 0, int(pngWidth), int(pngHeight)))
+
+		for i := range segmentTotal {
+			scrY := 64 * i
+			dstX := 128 * (i % segment)
+			dstY := 64 * (i / segment)
+
+			if dstY < pngHeight {
+				copy128x64Pixels(t32Img, scrY, pngImg, dstX, dstY)
+			}
+		}
+
+		buf := bytes.NewBuffer([]byte{})
+		if err := png.Encode(buf, pngImg); err != nil {
+			return err
+		}
+
+		if _, err := pngFile.Write(buf.Bytes()); err != nil {
+			return err
+		}
 	}
-	log.Println("Converted")
+
+	return nil
 }
 
 func main() {
@@ -176,22 +214,57 @@ func main() {
 			imgui.SetNextWindowPosV(imgui.NewVec2(12, 12), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
 			imgui.BeginV("Information", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 			entry := entries[currentEntry]
-			imgui.Text(
-				fmt.Sprintf(
-					"%dx%d",
-					entry.Picture.ImageWidth,
-					entry.Picture.ImageHeight,
-				),
-			)
+			if segment <= 1 {
+				imgui.Text(
+					fmt.Sprintf(
+						"%dx%d",
+						entry.Picture.ImageWidth,
+						entry.Picture.ImageHeight,
+					),
+				)
+			} else {
+				imgui.Text(
+					fmt.Sprintf(
+						"%dx%d",
+						128*segment,
+						(segmentTotal/segment)*64,
+					),
+				)
+			}
 			imgui.End()
 		}
 
-		imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
-		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, height-12), imgui.CondAlways, imgui.NewVec2(1, 1))
+		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.BeginDisabledV(!canConvert)
+		imgui.PushIDStr("Segment")
+		if imgui.SliderInt("", &(segment), 0, segmentTotal) {
+			if currentEntry != -1 {
+				entry := entries[currentEntry]
+				if segment <= 1 {
+					matrix = rl.MatrixTranslate(
+						(width/2)-(float32(entry.Texture.Width)/2),
+						(height/2)-(float32(entry.Texture.Height)/2),
+						0,
+					)
+				} else {
+					matrix = rl.MatrixTranslate(
+						(width/2)-(float32((128*segment)/2)),
+						(height/2)-(float32(((segmentTotal/segment)*64)/2)),
+						0,
+					)
+				}
+			}
+		}
+		imgui.PopID()
+		imgui.SameLineV(0, 4)
 		if imgui.Button("Convert To PNG") {
 			go func() {
-				convert2png()
+				if err := convert2png(segment, segmentTotal); err != nil {
+					log.Println(err)
+				} else {
+					log.Println("Converted")
+				}
 			}()
 		}
 		imgui.EndDisabled()
@@ -218,13 +291,25 @@ func main() {
 
 			utils.MatrixDecompose(matrix, &translate, &rotation, &scale)
 
-			rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(entry.Texture.Width)*scale.X, float32(entry.Texture.Height)*scale.Y), 1, rl.Gray)
+			if segment <= 1 {
+				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(entry.Texture.Width)*scale.X, float32(entry.Texture.Height)*scale.Y), 1, rl.Gray)
+			} else {
+				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(128*segment)*scale.X, float32((segmentTotal/segment)*64)*scale.Y), 1, rl.Gray)
+			}
 
 			rl.PushMatrix()
 			rl.Translatef(translate.X, translate.Y, 0)
 			rl.Scalef(scale.X, scale.Y, 1)
 
-			rl.DrawTexture(entry.Texture, 0, 0, rl.White)
+			if segment == 0 {
+				rl.DrawTexture(entry.Texture, 0, 0, rl.White)
+			} else {
+				for i := range segmentTotal {
+					x := float32(128 * (i % segment))
+					y := float32(64 * (i / segment))
+					rl.DrawTextureRec(entry.Texture, rl.NewRectangle(0, float32(64*i), 128, 64), rl.NewVector2(x, y), rl.White)
+				}
+			}
 
 			rl.PopMatrix()
 

@@ -18,5 +18,7 @@ var matrix = rl.MatrixIdentity()
 var mode = ModeSingle
 var entries = []*Entry{}
 var currentEntry = -1
+var segment = int32(0)
+var segmentTotal = int32(0)
 
 var canConvert = false
