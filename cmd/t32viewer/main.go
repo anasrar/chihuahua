@@ -201,11 +201,19 @@ func main() {
 		if imgui.Button("Reset View") {
 			if currentEntry != -1 {
 				entry := entries[currentEntry]
-				matrix = rl.MatrixTranslate(
-					(width/2)-(float32(entry.Texture.Width)/2),
-					(height/2)-(float32(entry.Texture.Height)/2),
-					0,
-				)
+				if stride <= 1 {
+					matrix = rl.MatrixTranslate(
+						(width/2)-(float32(entry.Texture.Width)/2),
+						(height/2)-(float32(entry.Texture.Height)/2),
+						0,
+					)
+				} else {
+					matrix = rl.MatrixTranslate(
+						(width/2)-(float32((128*stride)/2)),
+						(height/2)-(float32(((strideTotal/stride)*64)/2)),
+						0,
+					)
+				}
 			}
 		}
 		imgui.End()
