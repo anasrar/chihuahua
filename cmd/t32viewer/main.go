@@ -67,8 +67,8 @@ func drop(filePath string) error {
 
 	mode = ModeSingle
 	canConvert = true
-	segment = 0
-	segmentTotal = int32(texture.Height) / 64
+	stride = 0
+	strideTotal = int32(texture.Height) / 64
 
 	return nil
 }
@@ -106,7 +106,7 @@ func copy128x64Pixels(scrImg *image.NRGBA, scrY int32, dstImg *image.NRGBA, dstX
 	}
 }
 
-func convert2png(segment, segmentTotal int32) error {
+func convert2png(stride, strideTotal int32) error {
 	if currentEntry == -1 {
 		return fmt.Errorf("T32 not found")
 	}
@@ -119,20 +119,20 @@ func convert2png(segment, segmentTotal int32) error {
 	}
 	defer pngFile.Close()
 
-	if segment <= 1 {
+	if stride <= 1 {
 		if _, err := pngFile.Write(entry.Png); err != nil {
 			return err
 		}
 	} else {
 		t32Img := t32.T32ToImage(entry.Picture)
-		pngWidth := 128 * segment
-		pngHeight := (segmentTotal / segment) * 64
+		pngWidth := 128 * stride
+		pngHeight := (strideTotal / stride) * 64
 		pngImg := image.NewNRGBA(image.Rect(0, 0, int(pngWidth), int(pngHeight)))
 
-		for i := range segmentTotal {
+		for i := range strideTotal {
 			scrY := 64 * i
-			dstX := 128 * (i % segment)
-			dstY := 64 * (i / segment)
+			dstX := 128 * (i % stride)
+			dstY := 64 * (i / stride)
 
 			if dstY < pngHeight {
 				copy128x64Pixels(t32Img, scrY, pngImg, dstX, dstY)
@@ -214,7 +214,7 @@ func main() {
 			imgui.SetNextWindowPosV(imgui.NewVec2(12, 12), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
 			imgui.BeginV("Information", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 			entry := entries[currentEntry]
-			if segment <= 1 {
+			if stride <= 1 {
 				imgui.Text(
 					fmt.Sprintf(
 						"%dx%d",
@@ -226,8 +226,8 @@ func main() {
 				imgui.Text(
 					fmt.Sprintf(
 						"%dx%d",
-						128*segment,
-						(segmentTotal/segment)*64,
+						128*stride,
+						(strideTotal/stride)*64,
 					),
 				)
 			}
@@ -237,11 +237,11 @@ func main() {
 		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, height-12), imgui.CondAlways, imgui.NewVec2(1, 1))
 		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.BeginDisabledV(!canConvert)
-		imgui.PushIDStr("Segment")
-		if imgui.SliderInt("", &(segment), 0, segmentTotal) {
+		imgui.PushIDStr("Stride")
+		if imgui.SliderInt("", &(stride), 0, strideTotal) {
 			if currentEntry != -1 {
 				entry := entries[currentEntry]
-				if segment <= 1 {
+				if stride <= 1 {
 					matrix = rl.MatrixTranslate(
 						(width/2)-(float32(entry.Texture.Width)/2),
 						(height/2)-(float32(entry.Texture.Height)/2),
@@ -249,8 +249,8 @@ func main() {
 					)
 				} else {
 					matrix = rl.MatrixTranslate(
-						(width/2)-(float32((128*segment)/2)),
-						(height/2)-(float32(((segmentTotal/segment)*64)/2)),
+						(width/2)-(float32((128*stride)/2)),
+						(height/2)-(float32(((strideTotal/stride)*64)/2)),
 						0,
 					)
 				}
@@ -260,7 +260,7 @@ func main() {
 		imgui.SameLineV(0, 4)
 		if imgui.Button("Convert To PNG") {
 			go func() {
-				if err := convert2png(segment, segmentTotal); err != nil {
+				if err := convert2png(stride, strideTotal); err != nil {
 					log.Println(err)
 				} else {
 					log.Println("Converted")
@@ -291,22 +291,22 @@ func main() {
 
 			utils.MatrixDecompose(matrix, &translate, &rotation, &scale)
 
-			if segment <= 1 {
+			if stride <= 1 {
 				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(entry.Texture.Width)*scale.X, float32(entry.Texture.Height)*scale.Y), 1, rl.Gray)
 			} else {
-				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(128*segment)*scale.X, float32((segmentTotal/segment)*64)*scale.Y), 1, rl.Gray)
+				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(128*stride)*scale.X, float32((strideTotal/stride)*64)*scale.Y), 1, rl.Gray)
 			}
 
 			rl.PushMatrix()
 			rl.Translatef(translate.X, translate.Y, 0)
 			rl.Scalef(scale.X, scale.Y, 1)
 
-			if segment == 0 {
+			if stride == 0 {
 				rl.DrawTexture(entry.Texture, 0, 0, rl.White)
 			} else {
-				for i := range segmentTotal {
-					x := float32(128 * (i % segment))
-					y := float32(64 * (i / segment))
+				for i := range strideTotal {
+					x := float32(128 * (i % stride))
+					y := float32(64 * (i / stride))
 					rl.DrawTextureRec(entry.Texture, rl.NewRectangle(0, float32(64*i), 128, 64), rl.NewVector2(x, y), rl.White)
 				}
 			}
