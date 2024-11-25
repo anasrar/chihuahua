@@ -20,5 +20,6 @@ var entries = []*Entry{}
 var currentEntry = -1
 var stride = int32(0)
 var strideTotal = int32(0)
+var canConvertPng2t32 = false
 
 var canConvert = false

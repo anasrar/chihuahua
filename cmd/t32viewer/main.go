@@ -97,15 +97,6 @@ func zoom(wheel float32) {
 	)
 }
 
-func copy128x64Pixels(scrImg *image.NRGBA, scrY int32, dstImg *image.NRGBA, dstX, dstY int32) {
-	for y := range 64 {
-		for x := range 128 {
-			c := scrImg.At(x, int(scrY)+y)
-			dstImg.Set(int(dstX)+x, int(dstY)+y, c)
-		}
-	}
-}
-
 func convert2png(stride, strideTotal int32) error {
 	if currentEntry == -1 {
 		return fmt.Errorf("T32 not found")
@@ -135,7 +126,13 @@ func convert2png(stride, strideTotal int32) error {
 			dstY := 64 * (i / stride)
 
 			if dstY < pngHeight {
-				copy128x64Pixels(t32Img, scrY, pngImg, dstX, dstY)
+				// NOTE: copy 128 x 64 pixels
+				for y := range 64 {
+					for x := range 128 {
+						c := t32Img.At(x, int(scrY)+y)
+						pngImg.Set(int(dstX)+x, int(dstY)+y, c)
+					}
+				}
 			}
 		}
 
@@ -150,6 +147,42 @@ func convert2png(stride, strideTotal int32) error {
 	}
 
 	return nil
+}
+
+func png2t32(filePath string) error {
+	if currentEntry == -1 {
+		return fmt.Errorf("T32 not found")
+	}
+	entry := entries[currentEntry]
+
+	pngFile, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer pngFile.Close()
+
+	img, err := png.Decode(pngFile)
+	if err != nil {
+		return err
+	}
+
+	imgPaletted, ok := img.(*image.Paletted)
+	if !ok {
+		return fmt.Errorf("PNG is not in indexed mode")
+	}
+
+	output := filepath.Join(
+		utils.ParentDirectory(filePath),
+		fmt.Sprintf("T32_%s.t32", utils.BasenameWithoutExt(filePath)),
+	)
+
+	t32File, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer t32File.Close()
+
+	return t32.ImagePalettedToFile(entry.Source, imgPaletted, t32File)
 }
 
 func main() {
@@ -172,10 +205,19 @@ func main() {
 			filePath := rl.LoadDroppedFiles()[0]
 			defer rl.UnloadDroppedFiles()
 
-			if err := drop(filePath); err != nil {
-				log.Println(err)
+			if canConvertPng2t32 {
+				log.Println("Convert PNG to T32")
+				if err := png2t32(filePath); err != nil {
+					log.Println(err)
+				} else {
+					log.Println("Converted")
+				}
 			} else {
-				t32Path = filePath
+				if err := drop(filePath); err != nil {
+					log.Println(err)
+				} else {
+					t32Path = filePath
+				}
 			}
 		}
 
@@ -268,6 +310,7 @@ func main() {
 		imgui.SameLineV(0, 4)
 		if imgui.Button("Convert To PNG") {
 			go func() {
+				log.Println("Convert to PNG")
 				if err := convert2png(stride, strideTotal); err != nil {
 					log.Println(err)
 				} else {
@@ -275,6 +318,29 @@ func main() {
 				}
 			}()
 		}
+		imgui.EndDisabled()
+		imgui.End()
+
+		imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
+		imgui.BeginV("WindowPng2T32", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
+		imgui.BeginDisabledV(!canConvert)
+
+		if imgui.Button("PNG2T32") {
+			imgui.OpenPopupStr("PNG2T32")
+			canConvertPng2t32 = true
+		}
+
+		center := imgui.MainViewport().Center()
+		imgui.SetNextWindowPosV(center, imgui.CondAppearing, imgui.NewVec2(0.5, 0.5))
+		if imgui.BeginPopupModalV("PNG2T32", nil, imgui.WindowFlagsAlwaysAutoResize) {
+			imgui.Text("Drag and drop PNG")
+			if imgui.Button("Cancel") {
+				imgui.CloseCurrentPopup()
+				canConvertPng2t32 = false
+			}
+			imgui.EndPopup()
+		}
+
 		imgui.EndDisabled()
 		imgui.End()
 
