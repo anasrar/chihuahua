@@ -57,7 +57,19 @@ SCR viewer for view SCR and MD file, drag and drop SCR, MD, and TM3 file, suppor
 
 ### t32viewer
 
-T32 viewer for view T32 file that use as texture UI, support export as PNG.
+T32 viewer for view T32 file that use as texture UI, support export as PNG and convert PNG to T32.
+
+> [!IMPORTANT]  
+> Only PNG with indexed mode that can be converted and the colors is less than `256`.
+>
+> Width and height should be `2^n`, where max `n` is 9 (to not exceeded PS2 RAM).
+
+> [!TIP]
+> Convert PNG to indexed mode.
+>
+> GIMP: Image > Mode > Indexed.
+>
+> Photoshop: Image > Mode > Indexed Color.
 
 ### timviewer
 
@@ -79,14 +91,9 @@ Using https://github.com/WerWolv/ImHex to analyze file format. There `pkg/*/*.he
 
 ## TODOS
 
-- [ ] png2tim2
-- [ ] png2t32
 - [ ] mot2gltf
 - [ ] Blender Add-ons: export as SCR room
 - [ ] Blender Add-ons: export as SCR model
-- [ ] Blender Add-ons: import SCR room
-- [ ] Blender Add-ons: import SCR model
-- [ ] Blender Add-ons: import MOT model
 
 ## File Format
 
