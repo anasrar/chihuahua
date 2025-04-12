@@ -2,6 +2,10 @@
 	import * as Sidebar from "@/components/ui/sidebar";
 </script>
 
+<svelte:head>
+	<title>Chihuahua</title>
+</svelte:head>
+
 <!-- top left -->
 <div class="absolute left-4 top-4">
 	<div class="flex items-center gap-2">
