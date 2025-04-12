@@ -177,7 +177,7 @@ export const tim3FromPng = (
 	height: number,
 	indices: Uint8Array,
 	palettes: number[][],
-): Result<Uint8Array> => {
+): Result<number[]> => {
 	const colorTotal = palettes.length;
 
 	if (colorTotal > 256) {
@@ -351,6 +351,6 @@ export const tim3FromPng = (
 	}
 
 	return {
-		value: new Uint8Array(result),
+		value: result,
 	};
 };

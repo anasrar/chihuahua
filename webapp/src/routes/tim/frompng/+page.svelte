@@ -167,7 +167,9 @@
 						return;
 					}
 
-					const blob = new Blob([tim3FromPngValue], { type: "application/octet-stream" });
+					const blob = new Blob([new Uint8Array(tim3FromPngValue)], {
+						type: "application/octet-stream",
+					});
 
 					const link = document.createElement("a");
 					link.download = `${item.filename}.tm3`;
@@ -198,7 +200,9 @@
 						return;
 					}
 
-					const blob = new Blob([tim2FromPngValue], { type: "application/octet-stream" });
+					const blob = new Blob([new Uint8Array(tim2FromPngValue)], {
+						type: "application/octet-stream",
+					});
 
 					const link = document.createElement("a");
 					link.download = `${item.filename}.tm2`;
