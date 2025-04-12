@@ -19,45 +19,22 @@ Since God Hand using the same game engine for Okami (the fact is some Okami asse
 
 ## Tools
 
-### datpack
+Windows and Linux executable available to download on [release page](https://github.com/anasrar/chihuahua/releases/tag/nightly), and you can access the web version on [anasrar.github.io/chihuahua/](https://anasrar.github.io/chihuahua)
 
-Pack generic dat container, support CLI and GUI.
+| Name            | Description                                                                                                |  CLI  |  GUI  |                               Web                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------- | :---: | :---: | :--------------------------------------------------------------: |
+| **datpack**     | Pack generic dat container.                                                                                | `yes` | `yes` |                              `todo`                              |
+| **datunpack**   | Unpack generic dat container.                                                                              | `yes` | `yes` |                              `todo`                              |
+| **modelviewer** | Model viewer for XXX.dat file except `evXXX.dat`, drag and drop `XXX.dat` file, support export as GLTF.    | `no`  | `yes` |                              `todo`                              |
+| **png2tim**     | Convert PNG to TIM (TIM3 and TIM2), **Note**: see [how to convert PNG to indexed mode](#png-indexed-mode). | `yes` | `yes` | [`tim/frompng`](https://anasrar.github.io/chihuahua/tim/frompng) |
+| **roomviewer**  | Room viewer for rXXX.dat file, drag and drop `rXXX.dat` file, support export as GLTF.                      | `no`  | `yes` |                              `todo`                              |
+| **scrviewer**   | SCR viewer for view SCR and MD file, drag and drop SCR, MD, and TM3 file, support export as GLTF.          | `no`  | `yes` |                              `todo`                              |
+| **t32viewer**   | T32 viewer for view T32 file that use as texture UI, support export as PNG and convert PNG to T32.         | `no`  | `yes` |                              `todo`                              |
+| **timviewer**   | TIM viewer for view TIM2 (`orivia_`), TIM3, TM3 image texture, support export as PNG.                      | `no`  | `yes` |  [`tim/viewer`](https://anasrar.github.io/chihuahua/tim/viewer)  |
+| **tm3pack**     | Pack TIM3 container as TM3.                                                                                | `yes` | `yes` |                          `in progress`                           |
+| **tm3unpack**   | Unpack TIM3 container as TM3.                                                                              | `yes` | `yes` |                          `in progress`                           |
 
-### datunpack
-
-Unpack generic dat container, support CLI and GUI.
-
-### modelviewer
-
-Model viewer for XXX.dat file except `evXXX.dat`, drag and drop `XXX.dat` file, support export as GLTF.
-
-### png2tim
-
-Convert PNG to TIM (TIM3 and TIM2), support CLI and GUI, drag and drop PNG.
-
-> [!IMPORTANT]  
-> Only PNG with indexed mode that can be converted and the colors is less than `256`.
->
-> Width and height should be `2^n`, where max `n` is 9 (to not exceeded PS2 RAM).
-
-> [!TIP]
-> Convert PNG to indexed mode.
->
-> GIMP: Image > Mode > Indexed.
->
-> Photoshop: Image > Mode > Indexed Color.
-
-### roomviewer
-
-Room viewer for rXXX.dat file, drag and drop `rXXX.dat` file, support export as GLTF.
-
-### scrviewer
-
-SCR viewer for view SCR and MD file, drag and drop SCR, MD, and TM3 file, support export as GLTF.
-
-### t32viewer
-
-T32 viewer for view T32 file that use as texture UI, support export as PNG and convert PNG to T32.
+## PNG Indexed Mode
 
 > [!IMPORTANT]  
 > Only PNG with indexed mode that can be converted and the colors is less than `256`.
@@ -70,18 +47,6 @@ T32 viewer for view T32 file that use as texture UI, support export as PNG and c
 > GIMP: Image > Mode > Indexed.
 >
 > Photoshop: Image > Mode > Indexed Color.
-
-### timviewer
-
-TIM viewer for view TIM2 (`orivia_`), TIM3, TM3 image texture, support export as PNG.
-
-### tm3pack
-
-Pack TIM3 container as TM3, support CLI and GUI.
-
-### tm3unpack
-
-Unpack TIM3 container as TM3, support CLI and GUI.
 
 ## Developer
 
@@ -141,3 +106,4 @@ rXXX: (stage) room data.
 - https://github.com/ocornut/imgui
 - https://github.com/cimgui/cimgui
 - https://github.com/AllenDang/cimgui-go
+- https://svelte.dev
