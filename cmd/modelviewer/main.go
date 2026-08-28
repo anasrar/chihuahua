@@ -557,19 +557,7 @@ func main() {
 			rl.ClearBackground(rl.NewColor(0, 0, 0, 0))
 			rl.BeginMode3D(camera)
 
-			if motionIndex == -1 {
-				model := models[0]
-
-				rl.DrawCube(rl.Vector3Zero(), .02, .02, .02, rl.Green)
-				bones := model.Model.Skeleton.GetBones()
-				pose := model.Model.Skeleton.GetBindPose()
-				for j := int32(1); j < model.Model.Skeleton.BoneCount; j++ {
-					rl.DrawCube(pose[j].Translation, .02, .02, .02, rl.Green)
-					rl.DrawLine3D(pose[j].Translation, pose[bones[j].Parent].Translation, rl.Green)
-				}
-			} else {
-				DrawBoneTree(boneTree, frameIndex)
-			}
+			DrawModelSkeleton(models[0], motionIndex != -1)
 
 			rl.EndMode3D()
 			rl.EndTextureMode()

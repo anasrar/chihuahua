@@ -17,36 +17,22 @@ func NewBoneNode(bone *bone.Bone) *BoneNode {
 	}
 }
 
-func DrawBoneTree(node *BoneNode, frame int32) {
-	rl.PushMatrix()
-
-	if node.Bone.Index != 1 {
-		rl.Translatef(node.Bone.Translation[0], node.Bone.Translation[1], node.Bone.Translation[2])
+func DrawModelSkeleton(model *Model, animated bool) {
+	pose := model.BindPose
+	color := rl.Green
+	if animated {
+		pose = model.CurrentPose
+		color = rl.Blue
+	}
+	if len(pose) == 0 {
+		return
 	}
 
-	if motionIndex != -1 {
-		transform := frames[frame][node.Bone.Index]
-		rl.Translatef(transform.Translation[0], transform.Translation[1], transform.Translation[2])
-		rl.Rotatef(transform.Rotation[0]*rl.Rad2deg, 1, 0, 0)
-		rl.Rotatef(transform.Rotation[1]*rl.Rad2deg, 0, 1, 0)
-		rl.Rotatef(transform.Rotation[2]*rl.Rad2deg, 0, 0, 1)
+	for boneIndex, transform := range pose {
+		rl.DrawCube(transform.Translation, .02, .02, .02, color)
+		parent := int(model.Bones[boneIndex].Parent)
+		if parent >= 0 && parent < len(pose) {
+			rl.DrawLine3D(transform.Translation, pose[parent].Translation, color)
+		}
 	}
-
-	rl.DrawCube(rl.Vector3Zero(), .02, .02, .02, rl.Blue)
-
-	for _, child := range node.Children {
-		rl.DrawLine3D(
-			rl.Vector3Zero(),
-			rl.NewVector3(
-				child.Bone.Translation[0],
-				child.Bone.Translation[1],
-				child.Bone.Translation[2],
-			),
-			rl.Blue,
-		)
-
-		DrawBoneTree(child, frame)
-	}
-
-	rl.PopMatrix()
 }
