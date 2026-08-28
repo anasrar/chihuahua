@@ -10,5 +10,5 @@ type Entry struct {
 	Name    string
 	Png     []byte
 	Texture rl.Texture2D
-	Picture *t32.T32
+	Picture *t32.Container
 }

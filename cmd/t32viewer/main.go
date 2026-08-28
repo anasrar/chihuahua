@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	"image/png"
 	"log"
 	"os"
@@ -39,13 +38,17 @@ func drop(filePath string) error {
 	}
 
 	buf := bytes.NewBuffer([]byte{})
-	if err := png.Encode(buf, t32.T32ToImage(t)); err != nil {
+	img, err := t32.T32ToPalettedImage(t)
+	if err != nil {
+		return err
+	}
+	if err := png.Encode(buf, img); err != nil {
 		return err
 	}
 
-	img := rl.LoadImageFromMemory(".png", buf.Bytes(), int32(buf.Len()))
-	texture := rl.LoadTextureFromImage(img)
-	rl.UnloadImage(img)
+	rlImg := rl.NewImageFromImage(img)
+	texture := rl.LoadTextureFromImage(rlImg)
+	rl.UnloadImage(rlImg)
 
 	entries = []*Entry{
 		{
@@ -67,8 +70,6 @@ func drop(filePath string) error {
 
 	mode = ModeSingle
 	canConvert = true
-	stride = 0
-	strideTotal = int32(texture.Height) / 64
 
 	return nil
 }
@@ -97,7 +98,7 @@ func zoom(wheel float32) {
 	)
 }
 
-func convert2png(stride, strideTotal int32) error {
+func convert2png() error {
 	if currentEntry == -1 {
 		return fmt.Errorf("T32 not found")
 	}
@@ -110,79 +111,10 @@ func convert2png(stride, strideTotal int32) error {
 	}
 	defer pngFile.Close()
 
-	if stride <= 1 {
-		if _, err := pngFile.Write(entry.Png); err != nil {
-			return err
-		}
-	} else {
-		t32Img := t32.T32ToImage(entry.Picture)
-		pngWidth := 128 * stride
-		pngHeight := (strideTotal / stride) * 64
-		pngImg := image.NewNRGBA(image.Rect(0, 0, int(pngWidth), int(pngHeight)))
-
-		for i := range strideTotal {
-			scrY := 64 * i
-			dstX := 128 * (i % stride)
-			dstY := 64 * (i / stride)
-
-			if dstY < pngHeight {
-				// NOTE: copy 128 x 64 pixels
-				for y := range 64 {
-					for x := range 128 {
-						c := t32Img.At(x, int(scrY)+y)
-						pngImg.Set(int(dstX)+x, int(dstY)+y, c)
-					}
-				}
-			}
-		}
-
-		buf := bytes.NewBuffer([]byte{})
-		if err := png.Encode(buf, pngImg); err != nil {
-			return err
-		}
-
-		if _, err := pngFile.Write(buf.Bytes()); err != nil {
-			return err
-		}
+	if _, err := pngFile.Write(entry.Png); err != nil {
+		return err
 	}
-
 	return nil
-}
-
-func png2t32(filePath string) error {
-	if currentEntry == -1 {
-		return fmt.Errorf("T32 not found")
-	}
-	entry := entries[currentEntry]
-
-	pngFile, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer pngFile.Close()
-
-	img, err := png.Decode(pngFile)
-	if err != nil {
-		return err
-	}
-
-	imgPaletted, ok := img.(*image.Paletted)
-	if !ok {
-		return fmt.Errorf("PNG is not in indexed mode")
-	}
-
-	output := filepath.Join(
-		utils.ParentDirectory(filePath),
-		fmt.Sprintf("T32_%s.t32", utils.BasenameWithoutExt(filePath)),
-	)
-
-	t32File, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer t32File.Close()
-
-	return t32.ImagePalettedToFile(entry.Source, imgPaletted, t32File)
 }
 
 func main() {
@@ -205,19 +137,10 @@ func main() {
 			filePath := rl.LoadDroppedFiles()[0]
 			defer rl.UnloadDroppedFiles()
 
-			if canConvertPng2t32 {
-				log.Println("Convert PNG to T32")
-				if err := png2t32(filePath); err != nil {
-					log.Println(err)
-				} else {
-					log.Println("Converted")
-				}
+			if err := drop(filePath); err != nil {
+				log.Println(err)
 			} else {
-				if err := drop(filePath); err != nil {
-					log.Println(err)
-				} else {
-					t32Path = filePath
-				}
+				t32Path = filePath
 			}
 		}
 
@@ -243,19 +166,11 @@ func main() {
 		if imgui.Button("Reset View") {
 			if currentEntry != -1 {
 				entry := entries[currentEntry]
-				if stride <= 1 {
-					matrix = rl.MatrixTranslate(
-						(width/2)-(float32(entry.Texture.Width)/2),
-						(height/2)-(float32(entry.Texture.Height)/2),
-						0,
-					)
-				} else {
-					matrix = rl.MatrixTranslate(
-						(width/2)-(float32((128*stride)/2)),
-						(height/2)-(float32(((strideTotal/stride)*64)/2)),
-						0,
-					)
-				}
+				matrix = rl.MatrixTranslate(
+					(width/2)-(float32(entry.Texture.Width)/2),
+					(height/2)-(float32(entry.Texture.Height)/2),
+					0,
+				)
 			}
 		}
 		imgui.End()
@@ -264,83 +179,29 @@ func main() {
 			imgui.SetNextWindowPosV(imgui.NewVec2(12, 12), imgui.CondFirstUseEver, imgui.NewVec2(0, 0))
 			imgui.BeginV("Information", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 			entry := entries[currentEntry]
-			if stride <= 1 {
-				imgui.Text(
-					fmt.Sprintf(
-						"%dx%d",
-						entry.Picture.ImageWidth,
-						entry.Picture.ImageHeight,
-					),
-				)
-			} else {
-				imgui.Text(
-					fmt.Sprintf(
-						"%dx%d",
-						128*stride,
-						(strideTotal/stride)*64,
-					),
-				)
-			}
+			imgui.Text(
+				fmt.Sprintf(
+					"%dx%d",
+					entry.Texture.Width,
+					entry.Texture.Height,
+				),
+			)
 			imgui.End()
 		}
 
 		imgui.SetNextWindowPosV(imgui.NewVec2(width-12, height-12), imgui.CondAlways, imgui.NewVec2(1, 1))
 		imgui.BeginV("ToPng", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
 		imgui.BeginDisabledV(!canConvert)
-		imgui.PushIDStr("Stride")
-		if imgui.SliderInt("", &(stride), 0, strideTotal) {
-			if currentEntry != -1 {
-				entry := entries[currentEntry]
-				if stride <= 1 {
-					matrix = rl.MatrixTranslate(
-						(width/2)-(float32(entry.Texture.Width)/2),
-						(height/2)-(float32(entry.Texture.Height)/2),
-						0,
-					)
-				} else {
-					matrix = rl.MatrixTranslate(
-						(width/2)-(float32((128*stride)/2)),
-						(height/2)-(float32(((strideTotal/stride)*64)/2)),
-						0,
-					)
-				}
-			}
-		}
-		imgui.PopID()
-		imgui.SameLineV(0, 4)
 		if imgui.Button("Convert To PNG") {
 			go func() {
 				log.Println("Convert to PNG")
-				if err := convert2png(stride, strideTotal); err != nil {
+				if err := convert2png(); err != nil {
 					log.Println(err)
 				} else {
 					log.Println("Converted")
 				}
 			}()
 		}
-		imgui.EndDisabled()
-		imgui.End()
-
-		imgui.SetNextWindowPosV(imgui.NewVec2(12, height-12), imgui.CondAlways, imgui.NewVec2(0, 1))
-		imgui.BeginV("WindowPng2T32", nil, imgui.WindowFlagsNoResize|imgui.WindowFlagsAlwaysAutoResize|imgui.WindowFlagsNoMove|imgui.WindowFlagsNoTitleBar)
-		imgui.BeginDisabledV(!canConvert)
-
-		if imgui.Button("PNG2T32") {
-			imgui.OpenPopupStr("PNG2T32")
-			canConvertPng2t32 = true
-		}
-
-		center := imgui.MainViewport().Center()
-		imgui.SetNextWindowPosV(center, imgui.CondAppearing, imgui.NewVec2(0.5, 0.5))
-		if imgui.BeginPopupModalV("PNG2T32", nil, imgui.WindowFlagsAlwaysAutoResize) {
-			imgui.Text("Drag and drop PNG")
-			if imgui.Button("Cancel") {
-				imgui.CloseCurrentPopup()
-				canConvertPng2t32 = false
-			}
-			imgui.EndPopup()
-		}
-
 		imgui.EndDisabled()
 		imgui.End()
 
@@ -365,33 +226,17 @@ func main() {
 
 			utils.MatrixDecompose(matrix, &translate, &rotation, &scale)
 
-			if stride <= 1 {
-				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(entry.Texture.Width)*scale.X, float32(entry.Texture.Height)*scale.Y), 1, rl.Gray)
-			} else {
-				rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(128*stride)*scale.X, float32((strideTotal/stride)*64)*scale.Y), 1, rl.Gray)
-			}
+			rl.DrawRectangleLinesEx(rl.NewRectangle(translate.X, translate.Y, float32(entry.Texture.Width)*scale.X, float32(entry.Texture.Height)*scale.Y), 1, rl.Gray)
 
 			rl.PushMatrix()
 			rl.Translatef(translate.X, translate.Y, 0)
 			rl.Scalef(scale.X, scale.Y, 1)
 
-			if stride == 0 {
-				rl.DrawTexture(entry.Texture, 0, 0, rl.White)
-			} else {
-				for i := range strideTotal {
-					x := float32(128 * (i % stride))
-					y := float32(64 * (i / stride))
-					rl.DrawTextureRec(entry.Texture, rl.NewRectangle(0, float32(64*i), 128, 64), rl.NewVector2(x, y), rl.White)
-				}
-			}
+			rl.DrawTexture(entry.Texture, 0, 0, rl.White)
 
 			rl.PopMatrix()
 
 			rl.EndMode2D()
-
-			for i, c := range entry.Picture.ClutData {
-				rl.DrawRectangle(int32(i%8*8)+16, int32(i/8*8)+54, 8, 8, *c)
-			}
 		}
 
 		rlig.Render()
