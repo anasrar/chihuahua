@@ -6,10 +6,11 @@ require (
 	github.com/AllenDang/cimgui-go v1.6.0
 	github.com/gen2brain/raylib-go/raylib v0.60.1
 	github.com/qmuntal/gltf v0.27.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
+	github.com/anasrar/binarium v0.2.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/jupiterrider/ffi v0.7.0 // indirect

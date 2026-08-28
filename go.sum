@@ -1,5 +1,7 @@
 github.com/AllenDang/cimgui-go v1.6.0 h1:fv1M00FcNz3OMK1q0nOt208DxItmRGipSKcKitED4js=
 github.com/AllenDang/cimgui-go v1.6.0/go.mod h1:gz4dVFwmfoyUkBgVzBhiCJj1JXXWISQa8SQ190MlouY=
+github.com/anasrar/binarium v0.2.0 h1:oTZDECR/lmpB/pQ8XfeOgrM5wExyqXOlLyl/x+XDWRE=
+github.com/anasrar/binarium v0.2.0/go.mod h1:LOvDqtpRUDvbgxd0pmamI3PKrCcIVjVXiHdg/CZ0uNY=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/ebitengine/purego v0.10.2 h1:W809HbnvzAxgdm+aOvlSekrM16wGCdT/e76+9tS7gzE=
@@ -16,6 +18,7 @@ github.com/qmuntal/gltf v0.27.0 h1:A6E5F9Efg/G8ke4OfzJtSDfaTKwXRx4OYCoXfslF534=
 github.com/qmuntal/gltf v0.27.0/go.mod h1:YoXZOt0Nc0kIfSKOLZIRoV4FycdC+GzE+3JgiAGYoMs=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa h1:QSyA8ishJCyT21kER9KwNt0b7BM3iRK4x9QXhjN5Fdk=
 golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa/go.mod h1:zeBbvyFKDaLwa7CH/zI8KXt7gTl14SF7sO08Pl5jBCM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
