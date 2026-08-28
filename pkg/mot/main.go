@@ -3,6 +3,7 @@ package mot
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 
 	"github.com/anasrar/chihuahua/pkg/buffer"
@@ -17,7 +18,7 @@ type Mot struct {
 	Size                uint32    `json:"size"`
 	FrameTotal          uint16    `json:"frame_total"`
 	RecordTotal         uint8     `json:"record_total"`
-	UseInverseKinematic uint8     `json:"use_inverse_kinematic"`
+	Loop                uint8     `json:"loop"`
 	Records             []*Record `json:"record"`
 }
 
@@ -39,6 +40,7 @@ func (self *Mot) unmarshal(stream io.ReadWriteSeeker) error {
 	if signature != Signature {
 		return fmt.Errorf("MOT signature not match")
 	}
+	self.Records = self.Records[:0]
 
 	if _, err := buffer.ReadUint16LE(stream, &self.FrameTotal); err != nil {
 		return err
@@ -48,12 +50,12 @@ func (self *Mot) unmarshal(stream io.ReadWriteSeeker) error {
 		return err
 	}
 
-	if _, err := buffer.ReadUint8(stream, &self.UseInverseKinematic); err != nil {
+	if _, err := buffer.ReadUint8(stream, &self.Loop); err != nil {
 		return err
 	}
 
-	keyframeOffsets := []int64{}
-	for range self.RecordTotal {
+	dataOffsets := make([]uint32, 0, self.RecordTotal)
+	for i := range self.RecordTotal {
 		record := NewRecord()
 
 		if _, err := buffer.ReadUint8(stream, &record.Target); err != nil {
@@ -74,17 +76,26 @@ func (self *Mot) unmarshal(stream io.ReadWriteSeeker) error {
 			return err
 		}
 
-		offset := uint32(0)
-		if _, err := buffer.ReadUint32LE(stream, &offset); err != nil {
+		payload := uint32(0)
+		if _, err := buffer.ReadUint32LE(stream, &payload); err != nil {
 			return err
 		}
 
-		record.IsNull = offset == 0 || offset > self.Size
+		record.IsSentinel = record.Channel == ChannelSentinel
+		switch {
+		case record.IsSentinel:
+		case record.Encoding() == EncodingConstant:
+			record.ConstantValue = math.Float32frombits(payload)
+		case record.Encoding() == EncodingPgHalfHermite:
+			record.DataOffset = payload
+		default:
+			return fmt.Errorf(
+				"unsupported MOT encoding 0x%02X in record %d (channel %d)",
+				record.Encoding(), i, record.Channel,
+			)
+		}
 
-		keyframeOffsets = append(
-			keyframeOffsets,
-			int64(self.Offset+offset),
-		)
+		dataOffsets = append(dataOffsets, record.DataOffset)
 
 		self.Records = append(
 			self.Records,
@@ -92,14 +103,23 @@ func (self *Mot) unmarshal(stream io.ReadWriteSeeker) error {
 		)
 	}
 
-	for i, offset := range keyframeOffsets {
+	tableEnd := uint32(8) + uint32(self.RecordTotal)*12
+	for i, offset := range dataOffsets {
 		record := self.Records[i]
 
-		if record.IsNull {
+		if record.IsSentinel || record.Encoding() == EncodingConstant {
 			continue
 		}
 
-		if _, err := buffer.Seek(stream, offset, buffer.SeekStart); err != nil {
+		dataSize := uint64(12) + uint64(record.CurveTotal)*4
+		if offset < tableEnd || uint64(offset)+dataSize > uint64(self.Size) {
+			return fmt.Errorf(
+				"MOT record %d data range 0x%X..0x%X is outside MOT size 0x%X",
+				i, offset, uint64(offset)+dataSize, self.Size,
+			)
+		}
+
+		if _, err := buffer.Seek(stream, int64(self.Offset)+int64(offset), buffer.SeekStart); err != nil {
 			return err
 		}
 
@@ -155,11 +175,11 @@ func (self *Mot) unmarshal(stream io.ReadWriteSeeker) error {
 
 func New() *Mot {
 	return &Mot{
-		Offset:              0,
-		FrameTotal:          0,
-		RecordTotal:         0,
-		UseInverseKinematic: 0,
-		Records:             []*Record{},
+		Offset:      0,
+		FrameTotal:  0,
+		RecordTotal: 0,
+		Loop:        0,
+		Records:     []*Record{},
 	}
 }
 

@@ -29,7 +29,7 @@ struct Mot {
     char signature[4];
     u16  frame_total;
     u8   record_total;
-    u8   use_ik;
+    u8   loop;
     Record records[record_total];
 };
 
