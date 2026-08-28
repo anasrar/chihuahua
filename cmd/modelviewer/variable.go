@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/anasrar/chihuahua/pkg/bone"
+	"github.com/anasrar/chihuahua/pkg/mot"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -39,9 +40,10 @@ var boneNodes = []*BoneNode{boneTree}
 var motEntries = []*Entry{}
 var motionIndex = -1
 
-var frames = [][]*bone.Bone{} // NOTE: frames -> bone
+var frames = [][]mot.Transform{} // NOTE: frames -> transform
 var frameTotal = int32(0)
 var frameIndex = int32(0)
 var framePlay = false
+var frameDirty = false
 
 var background = [3]float32{0.071, 0.071, 0.071}

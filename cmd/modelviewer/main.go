@@ -67,112 +67,114 @@ func loadModel(index int) error {
 		}
 
 		for _, model := range models {
-			rl.UnloadMesh(model.Model.Meshes)
+			model.Unload()
 		}
 
 		models = []*Model{}
 
 		for i, node := range s.Nodes {
+			bones := []rl.BoneInfo{{
+				Name:   [32]int8{0x72, 0x6f, 0x6f, 0x74},
+				Parent: -1,
+			}}
+			bindLocal := []rl.Transform{{
+				Translation: rl.Vector3Zero(),
+				Rotation:    rl.QuaternionIdentity(),
+				Scale:       rl.Vector3One(),
+			}}
+
+			for _, mdbBone := range node.Mdb.Bones {
+				boneName := [32]int8{}
+				for nameIndex, c := range []uint8(mdbBone.Name) {
+					if nameIndex == len(boneName) {
+						break
+					}
+					boneName[nameIndex] = int8(c)
+				}
+
+				bones = append(bones, rl.BoneInfo{
+					Name:   boneName,
+					Parent: int32(mdbBone.Parent),
+				})
+				bindLocal = append(bindLocal, rl.Transform{
+					Translation: rl.NewVector3(mdbBone.Translation[0], mdbBone.Translation[1], mdbBone.Translation[2]),
+					Rotation:    rl.QuaternionIdentity(),
+					Scale:       rl.Vector3One(),
+				})
+			}
+
+			bindPose, err := buildWorldPose(bones, bindLocal)
+			if err != nil {
+				return fmt.Errorf("build skeleton for SCR node %q: %w", utils.FilterUnprintableString(node.Name), err)
+			}
+
 			for j, vb := range node.Mdb.VertexBuffers {
+				if len(vb.Indices) == 0 {
+					continue
+				}
 				name := fmt.Sprintf("%s_%03d_%03d", utils.FilterUnprintableString(node.Name), i, j)
 
-				var mesh rl.Mesh
-				mesh.TriangleCount = int32(len(vb.Indices))
-				mesh.VertexCount = int32(len(vb.Indices) * 3)
-
 				vertices := []float32{}
+				normals := []float32{}
 				uvs := []float32{}
 				joints := []uint8{}
 				weights := []float32{}
 
-				for _, index := range vb.Indices {
-					p1 := vb.Vertices[index[0]]
-					p2 := vb.Vertices[index[1]]
-					p3 := vb.Vertices[index[2]]
-
-					vertices = append(vertices, p1[:]...)
-					vertices = append(vertices, p2[:]...)
-					vertices = append(vertices, p3[:]...)
-
-					uv1 := vb.Uvs[index[0]]
-					uv2 := vb.Uvs[index[1]]
-					uv3 := vb.Uvs[index[2]]
-
-					uvs = append(uvs, uv1[:]...)
-					uvs = append(uvs, uv2[:]...)
-					uvs = append(uvs, uv3[:]...)
-
-					for _, joint := range vb.Joints[index[0]] {
-						joints = append(joints, joint)
-					}
-					for _, joint := range vb.Joints[index[1]] {
-						joints = append(joints, joint)
-					}
-					for _, joint := range vb.Joints[index[2]] {
-						joints = append(joints, joint)
-					}
-
-					weight1 := vb.Weights[index[0]]
-					weight2 := vb.Weights[index[1]]
-					weight3 := vb.Weights[index[2]]
-
-					weights = append(weights, weight1[:]...)
-					weights = append(weights, weight2[:]...)
-					weights = append(weights, weight3[:]...)
+				hasNormals := len(vb.Normals) != 0
+				if hasNormals && len(vb.Normals) != len(vb.Vertices) {
+					return fmt.Errorf("mesh %q has %d vertices but %d normals", name, len(vb.Vertices), len(vb.Normals))
+				}
+				if len(vb.Uvs) != len(vb.Vertices) {
+					return fmt.Errorf("mesh %q has %d vertices but %d texture coordinates", name, len(vb.Vertices), len(vb.Uvs))
+				}
+				hasSkin := len(vb.Joints) != 0 || len(vb.Weights) != 0
+				if hasSkin && (len(vb.Joints) != len(vb.Vertices) || len(vb.Weights) != len(vb.Vertices)) {
+					return fmt.Errorf("mesh %q has incomplete joint/weight data", name)
 				}
 
-				mesh.Vertices = &vertices[0]
-				mesh.Texcoords = &uvs[0]
-				mesh.BoneIndices = &joints[0]
-				mesh.BoneWeights = &weights[0]
+				for _, triangle := range vb.Indices {
+					for _, rawVertexIndex := range triangle {
+						vertexIndex := int(rawVertexIndex)
+						if vertexIndex < 0 || vertexIndex >= len(vb.Vertices) {
+							return fmt.Errorf("mesh %q triangle refers to invalid vertex %d", name, vertexIndex)
+						}
 
-				rl.UploadMesh(&mesh, false)
+						position := vb.Vertices[vertexIndex]
+						vertices = append(vertices, position[:]...)
+						uv := vb.Uvs[vertexIndex]
+						uvs = append(uvs, uv[:]...)
+						if hasNormals {
+							normal := vb.Normals[vertexIndex]
+							normals = append(normals, normal[:]...)
+						}
 
-				bones := []rl.BoneInfo{{
-					Name:   [32]int8{0x72, 0x6f, 0x6f, 0x74},
-					Parent: -1,
-				}}
-				pose := []rl.Transform{{
-					Translation: rl.Vector3Zero(),
-					Rotation:    rl.QuaternionIdentity(),
-					Scale:       rl.Vector3One(),
-				}}
-				bonesWorldPosition := map[int16]rl.Vector3{
-					0: rl.Vector3Zero(),
-				}
-
-				for i, bone := range node.Mdb.Bones {
-					boneName := [32]int8{}
-					for i, c := range []uint8(bone.Name) {
-						boneName[i] = int8(c)
+						if hasSkin {
+							joint := vb.Joints[vertexIndex]
+							weight := vb.Weights[vertexIndex]
+							joints = append(joints, joint[:]...)
+							weights = append(weights, weight[:]...)
+						} else {
+							joints = append(joints, 0, 0, 0, 0)
+							weights = append(weights, 1, 0, 0, 0)
+						}
 					}
-
-					bones = append(
-						bones,
-						rl.BoneInfo{
-							Name:   boneName,
-							Parent: int32(bone.Parent),
-						},
-					)
-
-					parentWorldPosition := bonesWorldPosition[bone.Parent]
-					worldPosition := rl.Vector3Add(parentWorldPosition, rl.NewVector3(bone.Translation[0], bone.Translation[1], bone.Translation[2]))
-					bonesWorldPosition[int16(i+1)] = worldPosition
-
-					pose = append(
-						pose,
-						rl.Transform{
-							Translation: worldPosition,
-							Rotation:    rl.QuaternionIdentity(),
-							Scale:       rl.Vector3One(),
-						},
-					)
 				}
+
+				buffers := NewMeshBuffers(vertices, normals, uvs, joints, weights)
+				vertexCount := len(vertices) / 3
+				if err := buffers.Validate(vertexCount, len(bones)); err != nil {
+					return fmt.Errorf("prepare mesh %q: %w", name, err)
+				}
+
+				mesh := rl.Mesh{
+					TriangleCount: int32(len(vb.Indices)),
+					VertexCount:   int32(vertexCount),
+					BoneCount:     int32(len(bones)),
+				}
+				buffers.Attach(&mesh)
+				rl.UploadMesh(&mesh, true)
 
 				model := rl.LoadModelFromMesh(mesh)
-				model.Skeleton.BoneCount = int32(len(bones))
-				model.Skeleton.Bones = &bones[0]
-				model.Skeleton.BindPose = &pose[0]
 
 				if texture, found := textures[int(vb.Material)]; found {
 					rl.SetMaterialTexture(model.Materials, rl.MapDiffuse, texture.Texture)
@@ -189,6 +191,10 @@ func loadModel(index int) error {
 						rl.NewVector3(node.Translation[0], node.Translation[1], node.Translation[2]),
 						rl.NewVector3(node.Rotation[0], node.Rotation[1], node.Rotation[2]),
 						rl.NewVector3(node.Scale[0], node.Scale[1], node.Scale[2]),
+						buffers,
+						bones,
+						bindLocal,
+						bindPose,
 					),
 				)
 			}
@@ -211,10 +217,11 @@ func loadModel(index int) error {
 	modelIndex = index
 	motionIndex = -1
 
-	frames = [][]*bone.Bone{}
+	frames = [][]mot.Transform{}
 	frameTotal = int32(0)
 	frameIndex = int32(0)
 	framePlay = false
+	frameDirty = false
 
 	return nil
 }
@@ -267,46 +274,43 @@ func loadMotion(index int) error {
 	if err := mot.FromPathWithOffsetSize(m, motEntry.Source, motEntry.Offset, motEntry.Size); err != nil {
 		return err
 	}
-
-	frames = [][]*bone.Bone{}
-
-	for range m.FrameTotal {
-		bones := []*bone.Bone{}
-		for _, node := range boneNodes {
-			bones = append(bones, bone.New(node.Bone.Index, node.Bone.Name, 0, 0, 0, 0, 0, 0, node.Bone.Parent))
-		}
-		frames = append(frames, bones)
+	if m.FrameTotal == 0 {
+		return fmt.Errorf("MOT contains no frames")
 	}
 
-	for _, record := range m.Records {
-		if record.IsNull {
-			continue
-		}
-
-		values := record.QuantizeHermite(m.FrameTotal)
-
-		for frame, value := range values {
-			switch record.Channel {
-			case 16:
-				frames[frame][record.Target].Translation[0] = value
-			case 17:
-				frames[frame][record.Target].Translation[1] = value
-			case 18:
-				frames[frame][record.Target].Translation[2] = value
-			case 19:
-				frames[frame][record.Target].Rotation[0] = value
-			case 20:
-				frames[frame][record.Target].Rotation[1] = value
-			case 21:
-				frames[frame][record.Target].Rotation[2] = value
-			}
+	quantizedFrames, err := m.QuantizeTransforms(len(boneNodes))
+	if err != nil {
+		return err
+	}
+	for _, model := range models {
+		if len(quantizedFrames[0]) < len(model.Bones) {
+			return fmt.Errorf("MOT has %d bone transforms, model %q requires %d", len(quantizedFrames[0]), model.Name, len(model.Bones))
 		}
 	}
+	frames = quantizedFrames
 
 	motionIndex = index
 	frameIndex = 0
 	frameTotal = int32(m.FrameTotal - 1)
 	framePlay = true
+	frameDirty = true
+	return nil
+}
+
+func applyMotionFrame() error {
+	if motionIndex == -1 || !frameDirty {
+		return nil
+	}
+	if frameIndex < 0 || int(frameIndex) >= len(frames) {
+		return fmt.Errorf("MOT frame %d is outside the decoded frame range", frameIndex)
+	}
+
+	for _, model := range models {
+		if err := model.ApplyAnimation(frames[frameIndex]); err != nil {
+			return err
+		}
+	}
+	frameDirty = false
 	return nil
 }
 
@@ -386,8 +390,9 @@ func main() {
 			rl.CameraPitch(&camera, -0.5*rl.GetFrameTime(), 0, 0, 0)
 		}
 
-		if framePlay {
-			frameIndex = (frameIndex + 1) % frameTotal
+		if framePlay && motionIndex != -1 {
+			frameIndex = (frameIndex + 1) % (frameTotal + 1)
+			frameDirty = true
 		}
 
 		imgui.NewFrame()
@@ -494,7 +499,11 @@ func main() {
 		imgui.BeginV("MOT", nil, imgui.WindowFlagsNoFocusOnAppearing)
 		imgui.BeginDisabledV(motionIndex == -1)
 		imgui.Checkbox("Play", &framePlay)
+		previousFrame := frameIndex
 		imgui.SliderInt("Frame", &(frameIndex), 0, int32(frameTotal))
+		if frameIndex != previousFrame {
+			frameDirty = true
+		}
 		imgui.EndDisabled()
 		imgui.Separator()
 		imgui.BeginChildStrV("MotRegion", imgui.NewVec2(0, 0), imgui.ChildFlagsNavFlattened, imgui.WindowFlagsHorizontalScrollbar)
@@ -513,6 +522,12 @@ func main() {
 		}
 		imgui.EndChild()
 		imgui.End()
+
+		if err := applyMotionFrame(); err != nil {
+			log.Println(err)
+			framePlay = false
+			frameDirty = false
+		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(
@@ -567,7 +582,7 @@ func main() {
 	}
 
 	for _, model := range models {
-		rl.UnloadMesh(model.Model.Meshes)
+		model.Unload()
 	}
 
 	for _, index := range textureIndices {

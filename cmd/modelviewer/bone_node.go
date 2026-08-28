@@ -25,11 +25,11 @@ func DrawBoneTree(node *BoneNode, frame int32) {
 	}
 
 	if motionIndex != -1 {
-		bone := frames[frame][node.Bone.Index]
-		rl.Translatef(bone.Translation[0], bone.Translation[1], bone.Translation[2])
-		rl.Rotatef(bone.Rotation[0]*rl.Rad2deg, 1, 0, 0)
-		rl.Rotatef(bone.Rotation[1]*rl.Rad2deg, 0, 1, 0)
-		rl.Rotatef(bone.Rotation[2]*rl.Rad2deg, 0, 0, 1)
+		transform := frames[frame][node.Bone.Index]
+		rl.Translatef(transform.Translation[0], transform.Translation[1], transform.Translation[2])
+		rl.Rotatef(transform.Rotation[0]*rl.Rad2deg, 1, 0, 0)
+		rl.Rotatef(transform.Rotation[1]*rl.Rad2deg, 0, 1, 0)
+		rl.Rotatef(transform.Rotation[2]*rl.Rad2deg, 0, 0, 1)
 	}
 
 	rl.DrawCube(rl.Vector3Zero(), .02, .02, .02, rl.Blue)
