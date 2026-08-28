@@ -191,7 +191,7 @@ func main() {
 		imgui.BeginV("TM3", nil, imgui.WindowFlagsNoMove)
 		for _, index := range textureIndices {
 			texture := textures[index]
-			imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(42, 42))
+			imgui.Image(texture.Ref, imgui.NewVec2(42, 42))
 			if imgui.BeginItemTooltip() {
 				imgui.Text(
 					fmt.Sprintf(
@@ -203,7 +203,7 @@ func main() {
 						texture.Picture.ClutColors,
 					),
 				)
-				imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(float32(texture.Texture.Width), float32(texture.Texture.Height)))
+				imgui.Image(texture.Ref, imgui.NewVec2(float32(texture.Texture.Width), float32(texture.Texture.Height)))
 				imgui.EndTooltip()
 			}
 		}
@@ -267,7 +267,7 @@ func main() {
 		}
 
 		if showOms {
-			ray := rl.GetMouseRay(rl.GetMousePosition(), camera)
+			ray := rl.GetScreenToWorldRay(rl.GetMousePosition(), camera)
 			for _, obj := range omsEntries {
 				obj.RenderLabel = rl.GetRayCollisionBox(
 					ray,
@@ -313,6 +313,7 @@ func main() {
 
 	for _, index := range textureIndices {
 		rl.UnloadTexture(textures[index].Texture)
+		textures[index].Ref.Destroy()
 		delete(textures, index)
 	}
 }

@@ -39,6 +39,7 @@ func drop(filePath string) error {
 
 		for _, entry := range entries {
 			rl.UnloadTexture(entry.Texture)
+			entry.TextureRef.Destroy()
 		}
 
 		buf := bytes.NewBuffer([]byte{})
@@ -52,11 +53,12 @@ func drop(filePath string) error {
 
 		entries = []*Entry{
 			{
-				Source:  filePath,
-				Name:    utils.BasenameWithoutExt(filePath),
-				Png:     buf.Bytes(),
-				Texture: texture,
-				Picture: tim.Pictures[0],
+				Source:     filePath,
+				Name:       utils.BasenameWithoutExt(filePath),
+				Png:        buf.Bytes(),
+				Texture:    texture,
+				TextureRef: *imgui.NewTextureRefTextureID(imgui.TextureID(texture.ID)),
+				Picture:    tim.Pictures[0],
 			},
 		}
 
@@ -91,11 +93,12 @@ func drop(filePath string) error {
 
 		entries = []*Entry{
 			{
-				Source:  filePath,
-				Name:    utils.BasenameWithoutExt(filePath),
-				Png:     buf.Bytes(),
-				Texture: texture,
-				Picture: tim.Pictures[0],
+				Source:     filePath,
+				Name:       utils.BasenameWithoutExt(filePath),
+				Png:        buf.Bytes(),
+				Texture:    texture,
+				TextureRef: *imgui.NewTextureRefTextureID(imgui.TextureID(texture.ID)),
+				Picture:    tim.Pictures[0],
 			},
 		}
 
@@ -139,11 +142,12 @@ func drop(filePath string) error {
 			entries = append(
 				entries,
 				&Entry{
-					Source:  filePath,
-					Name:    fmt.Sprintf("%s_%03d", utils.FilterUnprintableString(entry.Name), i),
-					Png:     buf.Bytes(),
-					Texture: texture,
-					Picture: tim.Pictures[0],
+					Source:     filePath,
+					Name:       fmt.Sprintf("%s_%03d", utils.FilterUnprintableString(entry.Name), i),
+					Png:        buf.Bytes(),
+					Texture:    texture,
+					TextureRef: *imgui.NewTextureRefTextureID(imgui.TextureID(texture.ID)),
+					Picture:    tim.Pictures[0],
 				},
 			)
 		}
@@ -298,7 +302,7 @@ func main() {
 			imgui.SetNextWindowSizeConstraints(imgui.NewVec2(84, 108), imgui.NewVec2(84, 216))
 			imgui.BeginV("Entries", nil, imgui.WindowFlagsNoMove)
 			for i, entry := range entries {
-				if imgui.ImageButton(entry.Name, imgui.TextureID(entry.Texture.ID), imgui.NewVec2(42, 42)) {
+				if imgui.ImageButton(entry.Name, entry.TextureRef, imgui.NewVec2(42, 42)) {
 					currentEntry = i
 					matrix = rl.MatrixTranslate(
 						(width/2)-(float32(entry.Texture.Width)/2),
@@ -413,5 +417,6 @@ func main() {
 
 	for _, entry := range entries {
 		rl.UnloadTexture(entry.Texture)
+		entry.TextureRef.Destroy()
 	}
 }

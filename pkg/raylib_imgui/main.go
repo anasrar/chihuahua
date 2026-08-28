@@ -184,6 +184,116 @@ var LastKeyShiftPressed = false
 var LastKeyAltPressed = false
 var LastKeySuperPressed = false
 
+var rendererTextures = make(map[imgui.TextureID]rl.Texture2D)
+
+func textureDataAsRGBA32(textureData imgui.TextureData) []byte {
+	width := int(textureData.Width())
+	height := int(textureData.Height())
+	pitch := int(textureData.Pitch())
+
+	pixels := unsafe.Slice(
+		(*byte)(unsafe.Pointer(textureData.Pixels())),
+		height*pitch,
+	)
+
+	rgba := make([]byte, width*height*4)
+
+	switch textureData.Format() {
+	case imgui.TextureFormatRGBA32:
+		for y := 0; y < height; y++ {
+			copy(
+				rgba[y*width*4:(y+1)*width*4],
+				pixels[y*pitch:y*pitch+width*4],
+			)
+		}
+
+	case imgui.TextureFormatAlpha8:
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
+				offset := (y*width + x) * 4
+				alpha := pixels[y*pitch+x]
+
+				rgba[offset+0] = 0xff
+				rgba[offset+1] = 0xff
+				rgba[offset+2] = 0xff
+				rgba[offset+3] = alpha
+			}
+		}
+
+	default:
+		panic("unsupported ImGui texture format")
+	}
+
+	return rgba
+}
+
+func loadRendererTexture(textureData imgui.TextureData) rl.Texture2D {
+	width := int(textureData.Width())
+	height := int(textureData.Height())
+
+	goImage := &image.RGBA{
+		Pix:    textureDataAsRGBA32(textureData),
+		Stride: width * 4,
+		Rect:   image.Rect(0, 0, width, height),
+	}
+
+	raylibImage := rl.NewImageFromImage(goImage)
+	texture := rl.LoadTextureFromImage(raylibImage)
+	rl.UnloadImage(raylibImage)
+
+	rl.SetTextureFilter(texture, rl.FilterBilinear)
+	rl.SetTextureWrap(texture, rl.WrapClamp)
+
+	return texture
+}
+
+func updateRendererTexture(textureData imgui.TextureData) {
+	switch textureData.Status() {
+	case imgui.TextureStatusOK, imgui.TextureStatusDestroyed:
+		return
+
+	case imgui.TextureStatusWantCreate:
+		texture := loadRendererTexture(textureData)
+		textureID := imgui.TextureID(texture.ID)
+
+		rendererTextures[textureID] = texture
+		textureData.SetTexID(textureID)
+		textureData.SetStatus(imgui.TextureStatusOK)
+
+	case imgui.TextureStatusWantUpdates:
+		texture, found := rendererTextures[textureData.TexID()]
+
+		if !found {
+			texture = loadRendererTexture(textureData)
+			textureID := imgui.TextureID(texture.ID)
+
+			rendererTextures[textureID] = texture
+			textureData.SetTexID(textureID)
+		} else {
+			// Uploading the complete texture is simpler than processing
+			// each UpdateRect and is sufficient for the font atlas.
+			rl.UpdateTexture(texture, textureDataAsRGBA32(textureData))
+		}
+
+		textureData.SetStatus(imgui.TextureStatusOK)
+
+	case imgui.TextureStatusWantDestroy:
+		if textureData.UnusedFrames() <= 0 {
+			return
+		}
+
+		textureID := textureData.TexID()
+
+		if texture, found := rendererTextures[textureID]; found {
+			rl.UnloadTexture(texture)
+			delete(rendererTextures, textureID)
+		}
+
+		textureData.SetTexID(0)
+		textureData.SetStatus(imgui.TextureStatusDestroyed)
+	}
+}
+
 func init() {
 	sizeoffloat = int(C.SzFloat())
 }
@@ -286,8 +396,7 @@ func getIndices(ibuf unsafe.Pointer, iblen, isize int) []uint16 {
 	}
 }
 
-// TODO: upgrade raylib-go and change rlButton int32 to rlButton rl.MouseButton
-func mouseButtonUpdate(lastFrame *bool, rlButton int32, igButton int32) {
+func mouseButtonUpdate(lastFrame *bool, rlButton rl.MouseButton, igButton int32) {
 	val := rl.IsMouseButtonDown(rlButton)
 	if val != *lastFrame {
 		imgui.CurrentIO().AddMouseButtonEvent(igButton, val)
@@ -327,49 +436,55 @@ func gamePadAnalogUpdate(axis int32, igAnalogNeg, igAnalogPos imgui.Key) {
 	}
 	imgui.CurrentIO().AddKeyAnalogEvent(igAnalogPos, value > deadZone, posValue)
 }
-
 func Load() {
 	imgui.SetCurrentContext(GlobalContext)
-	imgui.CurrentIO().SetConfigFlags(imgui.ConfigFlagsNavEnableKeyboard)
-	imgui.CurrentIO().SetBackendPlatformName("cimgui_go_impl_raylib_go")
-	imgui.CurrentIO().SetBackendFlags(
-		imgui.BackendFlagsHasMouseCursors | imgui.BackendFlagsHasSetMousePos,
-	)
-	imgui.CurrentIO().SetConfigFlags(
-		imgui.ConfigFlagsNavEnableKeyboard | imgui.ConfigFlagsDockingEnable,
-	)
-	imgui.CurrentIO().SetIniFilename("")
 
+	io := imgui.CurrentIO()
+
+	io.SetBackendPlatformName("cimgui_go_impl_raylib_go")
+	io.SetBackendRendererName("cimgui_go_renderer_raylib_go")
+
+	io.SetBackendFlags(
+		io.BackendFlags() |
+			imgui.BackendFlagsHasMouseCursors |
+			imgui.BackendFlagsHasSetMousePos |
+			imgui.BackendFlagsRendererHasTextures,
+	)
+
+	io.SetConfigFlags(
+		imgui.ConfigFlagsNavEnableKeyboard |
+			imgui.ConfigFlagsDockingEnable,
+	)
+
+	io.SetIniFilename("")
 	imgui.CurrentPlatformIO().SetClipboardHandler(clipboard{})
 
-	// NOTE: default font atlas
-	{
-		fonts := imgui.CurrentIO().Fonts()
-		pixels, width, height, _ := fonts.GetTextureDataAsRGBA32()
-		img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
-		for y := int32(0); y < height; y++ {
-			for x := int32(0); x < width; x++ {
-				offset := (y*width + x) * 4
-				ptr := (*[4]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(pixels)) + uintptr(offset)))
-				imgOffset := (y*width + x) * 4
-				img.Pix[imgOffset+0] = ptr[0]
-				img.Pix[imgOffset+1] = ptr[1]
-				img.Pix[imgOffset+2] = ptr[2]
-				img.Pix[imgOffset+3] = ptr[3]
-			}
-		}
-		rlImage := rl.NewImageFromImage(img)
-		defer rl.UnloadImage(rlImage)
-		FontTexture := rl.LoadTextureFromImage(rlImage)
-		fonts.SetTexID(imgui.TextureID(FontTexture.ID))
-	}
+	// Request RGBA32 TextureData from the font atlas.
+	io.Fonts().SetTexDesiredFormat(imgui.TextureFormatRGBA32)
 }
 
 func Unload() {
-	imgui.DestroyContextV(GlobalContext)
-	if FontTexture != nil {
-		rl.UnloadTexture(*FontTexture)
+	imgui.SetCurrentContext(GlobalContext)
+
+	// GPU textures must be destroyed before the ImGui context.
+	for _, textureData := range imgui.CurrentPlatformIO().Textures().Slice() {
+		textureID := textureData.TexID()
+
+		if texture, found := rendererTextures[textureID]; found {
+			rl.UnloadTexture(texture)
+			delete(rendererTextures, textureID)
+		}
+
+		textureData.SetTexID(0)
+		textureData.SetStatus(imgui.TextureStatusDestroyed)
 	}
+
+	for textureID, texture := range rendererTextures {
+		rl.UnloadTexture(texture)
+		delete(rendererTextures, textureID)
+	}
+
+	imgui.DestroyContextV(GlobalContext)
 }
 
 func Update() {
@@ -520,6 +635,9 @@ func Render() {
 
 	imgui.Render()
 	igDrawData := imgui.CurrentDrawData()
+	for _, textureData := range igDrawData.Textures().Slice() {
+		updateRendererTexture(textureData)
+	}
 	igDisplayPosition := igDrawData.DisplayPos()
 
 	vertexSize,
@@ -550,20 +668,21 @@ func Render() {
 
 				count := cmd.ElemCount()
 				indexStart := cmd.IdxOffset()
-				textureId := cmd.TextureId()
+				textureID := cmd.TexID()
+				vertexOffset := int(cmd.VtxOffset())
 
 				if !(count < 3) {
 					rl.Begin(rl.Triangles)
-					rl.SetTexture(uint32(textureId))
+					rl.SetTexture(uint32(textureID))
 
 					for i := uint32(0); i <= (count - 3); i += 3 {
 						indexA := indices[indexStart+i]
 						indexB := indices[indexStart+i+1]
 						indexC := indices[indexStart+i+2]
 
-						vertexA := vertices[indexA]
-						vertexB := vertices[indexB]
-						vertexC := vertices[indexC]
+						vertexA := vertices[vertexOffset+int(indexA)]
+						vertexB := vertices[vertexOffset+int(indexB)]
+						vertexC := vertices[vertexOffset+int(indexC)]
 
 						rl.Color4ub(vertexA.Color[0], vertexA.Color[1], vertexA.Color[2], vertexA.Color[3])
 						rl.TexCoord2f(vertexA.Uv[0], vertexA.Uv[1])

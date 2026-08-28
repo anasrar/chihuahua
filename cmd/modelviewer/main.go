@@ -30,6 +30,7 @@ func loadModel(index int) error {
 
 		for _, index := range textureIndices {
 			rl.UnloadTexture(textures[index].Texture)
+			textures[index].Ref.Destroy()
 			delete(textures, index)
 		}
 
@@ -81,7 +82,7 @@ func loadModel(index int) error {
 
 				vertices := []float32{}
 				uvs := []float32{}
-				joints := []int32{}
+				joints := []uint8{}
 				weights := []float32{}
 
 				for _, index := range vb.Indices {
@@ -102,13 +103,13 @@ func loadModel(index int) error {
 					uvs = append(uvs, uv3[:]...)
 
 					for _, joint := range vb.Joints[index[0]] {
-						joints = append(joints, int32(joint))
+						joints = append(joints, joint)
 					}
 					for _, joint := range vb.Joints[index[1]] {
-						joints = append(joints, int32(joint))
+						joints = append(joints, joint)
 					}
 					for _, joint := range vb.Joints[index[2]] {
-						joints = append(joints, int32(joint))
+						joints = append(joints, joint)
 					}
 
 					weight1 := vb.Weights[index[0]]
@@ -122,7 +123,7 @@ func loadModel(index int) error {
 
 				mesh.Vertices = &vertices[0]
 				mesh.Texcoords = &uvs[0]
-				mesh.BoneIds = &joints[0]
+				mesh.BoneIndices = &joints[0]
 				mesh.BoneWeights = &weights[0]
 
 				rl.UploadMesh(&mesh, false)
@@ -169,9 +170,9 @@ func loadModel(index int) error {
 				}
 
 				model := rl.LoadModelFromMesh(mesh)
-				model.BoneCount = int32(len(bones))
-				model.Bones = &bones[0]
-				model.BindPose = &pose[0]
+				model.Skeleton.BoneCount = int32(len(bones))
+				model.Skeleton.Bones = &bones[0]
+				model.Skeleton.BindPose = &pose[0]
 
 				if texture, found := textures[int(vb.Material)]; found {
 					rl.SetMaterialTexture(model.Materials, rl.MapDiffuse, texture.Texture)
@@ -405,7 +406,7 @@ func main() {
 		imgui.BeginV("TM3", nil, imgui.WindowFlagsNoMove)
 		for _, index := range textureIndices {
 			texture := textures[index]
-			imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(42, 42))
+			imgui.Image(texture.Ref, imgui.NewVec2(42, 42))
 			if imgui.BeginItemTooltip() {
 				imgui.Text(
 					fmt.Sprintf(
@@ -417,7 +418,7 @@ func main() {
 						texture.Picture.ClutColors,
 					),
 				)
-				imgui.Image(imgui.TextureID(texture.Texture.ID), imgui.NewVec2(float32(texture.Texture.Width), float32(texture.Texture.Height)))
+				imgui.Image(texture.Ref, imgui.NewVec2(float32(texture.Texture.Width), float32(texture.Texture.Height)))
 				imgui.EndTooltip()
 			}
 		}
@@ -545,9 +546,9 @@ func main() {
 				model := models[0]
 
 				rl.DrawCube(rl.Vector3Zero(), .02, .02, .02, rl.Green)
-				bones := model.Model.GetBones()
-				pose := model.Model.GetBindPose()
-				for j := int32(1); j < model.Model.BoneCount; j++ {
+				bones := model.Model.Skeleton.GetBones()
+				pose := model.Model.Skeleton.GetBindPose()
+				for j := int32(1); j < model.Model.Skeleton.BoneCount; j++ {
 					rl.DrawCube(pose[j].Translation, .02, .02, .02, rl.Green)
 					rl.DrawLine3D(pose[j].Translation, pose[bones[j].Parent].Translation, rl.Green)
 				}
@@ -571,6 +572,7 @@ func main() {
 
 	for _, index := range textureIndices {
 		rl.UnloadTexture(textures[index].Texture)
+		textures[index].Ref.Destroy()
 		delete(textures, index)
 	}
 }
