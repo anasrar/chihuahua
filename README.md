@@ -30,9 +30,10 @@ Windows and Linux executable available to download on [release page](https://git
 | **roomviewer**  | Room viewer for rXXX.dat file, drag and drop `rXXX.dat` file, support export as GLTF.                      | `no`  | `yes` |                              `todo`                              |
 | **scrviewer**   | SCR viewer for view SCR and MD file, drag and drop SCR, MD, and TM3 file, support export as GLTF.          | `no`  | `yes` |                              `todo`                              |
 | **t32viewer**   | T32 viewer for view T32 file that use as texture UI, support export as PNG.                                | `no`  | `yes` |                              `todo`                              |
+| **t32unpack**   | Unpack T32 container as indexed PNG.                                                                       | `yes` | `no`  |                              `todo`                              |
 | **timviewer**   | TIM viewer for view TIM2 (`orivia_`), TIM3, TM3 image texture, support export as PNG.                      | `no`  | `yes` |  [`tim/viewer`](https://anasrar.github.io/chihuahua/tim/viewer)  |
-| **tm3pack**     | Pack TIM3 container as TM3.                                                                                | `yes` | `yes` |                          `in progress`                           |
-| **tm3unpack**   | Unpack TIM3 container as TM3.                                                                              | `yes` | `yes` |                          `in progress`                           |
+| **tm3pack**     | Pack TIM3 container as TM3.                                                                                | `yes` | `yes` |                              `todo`                              |
+| **tm3unpack**   | Unpack TIM3 container as TM3.                                                                              | `yes` | `yes` |                              `todo`                              |
 
 ## PNG Indexed Mode
 
@@ -76,7 +77,7 @@ OMS: object spawn transform.
 SCP: generic dat container, contain SCR and TM3.
 SCR: container for MDB, contain name and transform.
 MOT: contain animation curve with bone target and channel.
-T32: texture UI.
+T32: container texture mostly for UI, the structure is `{textures: {palettes: {}[]}[]}`.
 TIM2: PS2 texture format.
 TIM3: extend version PS2 texture format.
 TM3: TIM3 container.
