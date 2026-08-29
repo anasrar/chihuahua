@@ -37,6 +37,8 @@ jobs:
           echo "Linux: scrviewer"
           go build -v -o output/t32viewer_linux --ldflags="-s -w" cmd/t32viewer/*.go
           echo "Linux: t32viewer"
+          go build -v -o output/t32unpack_linux --ldflags="-s -w" cmd/t32unpack/*.go
+          echo "Linux: t32unpack"
           go build -v -o output/timviewer_linux --ldflags="-s -w" cmd/timviewer/*.go
           echo "Linux: timviewer"
           go build -v -o output/tm3pack_linux --ldflags="-s -w -X 'main.GitCommitHash=$(git rev-parse --short=8 HEAD)'" cmd/tm3pack/*.go
@@ -84,6 +86,8 @@ jobs:
           echo "Windows: scrviewer"
           go build -v -o output/t32viewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/t32viewer/entry.go cmd/t32viewer/main.go cmd/t32viewer/mode.go cmd/t32viewer/variable.go
           echo "Windows: t32viewer"
+          go build -v -o output/t32unpack_win.exe --ldflags="-extldflags=-static -s -w" cmd/t32unpack/main.go cmd/t32unpack/mode.go cmd/t32unpack/variable.go
+          echo "Windows: t32unpack"
           go build -v -o output/timviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/timviewer/entry.go cmd/timviewer/main.go cmd/timviewer/mode.go cmd/timviewer/variable.go
           echo "Windows: timviewer"
           go build -v -o output/tm3pack_win.exe --ldflags="-extldflags=-static -s -w" cmd/tm3pack/gui.go cmd/tm3pack/main.go cmd/tm3pack/pack.go cmd/tm3pack/variable.go
