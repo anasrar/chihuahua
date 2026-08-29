@@ -41,3 +41,18 @@ func DecodeGSTex0(raw uint64) GSTex0 {
 		CLD:  uint8((raw >> 61) & 0x07),
 	}
 }
+
+func EncodeGSTex0(t GSTex0) uint64 {
+	return uint64(t.TBP0&0x3fff) |
+		uint64(t.TBW&0x3f)<<14 |
+		uint64(t.PSM&0x3f)<<20 |
+		uint64(t.TW&0x0f)<<26 |
+		uint64(t.TH&0x0f)<<30 |
+		uint64(t.TCC&0x01)<<34 |
+		uint64(t.TFX&0x03)<<35 |
+		uint64(t.CBP&0x3fff)<<37 |
+		uint64(t.CPSM&0x0f)<<51 |
+		uint64(t.CSM&0x01)<<55 |
+		uint64(t.CSA&0x1f)<<56 |
+		uint64(t.CLD&0x07)<<61
+}
