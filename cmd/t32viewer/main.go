@@ -29,7 +29,7 @@ func drop(filePath string) error {
 	}
 
 	t := t32.New()
-	if err := t32.FromPath(t, filePath); err != nil {
+	if err := t32.FromStreamWithOffset(t, file, 0); err != nil {
 		return err
 	}
 
@@ -38,7 +38,7 @@ func drop(filePath string) error {
 	}
 
 	buf := bytes.NewBuffer([]byte{})
-	img, err := t32.T32ToPalettedImage(t)
+	img, err := t.PaletteAtImage(0, 0)
 	if err != nil {
 		return err
 	}
