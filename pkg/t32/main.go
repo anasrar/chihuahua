@@ -1,8 +1,3 @@
-// Package t32 decodes the compact, single-texture T32 variant.
-//
-// The input must already be decompressed. Fixed binary structures are read
-// from io.ReadSeeker with binarium, while PS2 GS addressing is handled by
-// github.com/anasrar/graphicsynthesizer.
 package t32
 
 import (
@@ -11,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"io"
-	"os"
 
 	graphicsynthesizer "github.com/anasrar/chihuahua/pkg/graphic_synthesizer"
 	"github.com/anasrar/chihuahua/pkg/utils"
@@ -27,7 +21,18 @@ type Header struct {
 	PalettePacketTotal uint16 `json:"palette_packet_total"`
 	Reserved0          uint32 `json:"reserved_0"`
 	Reserved1          uint32 `json:"reserved_1"`
-	PaletteTotal       uint32 `json:"palette_total"`
+	// PaletteTotal is the number of palettes owned by the first texture.
+	PaletteTotal uint32 `json:"palette_total"`
+}
+
+// TextureLink precedes every texture descriptor except the first one.
+type TextureLink struct {
+	Index        uint32 `json:"index"`
+	PaletteTotal uint32 `json:"palette_total"`
+}
+
+type Palette struct {
+	Colors []RGBA `json:"colors" skip:""`
 }
 
 type Texture struct {
@@ -35,8 +40,13 @@ type Texture struct {
 	GSTex1Raw uint32 `json:"gs_tex_1_raw"`
 	Reserved  uint32 `json:"reserved"`
 
-	GSTex0 GSTex0 `json:"gs_tex_0" skip:""`
-	GSTex1 GSTex1 `json:"gs_tex_1" skip:""`
+	GSTex0   GSTex0    `json:"gs_tex_0" skip:""`
+	GSTex1   GSTex1    `json:"gs_tex_1" skip:""`
+	Index    uint32    `json:"index" skip:""`
+	Width    int       `json:"width" skip:""`
+	Height   int       `json:"height" skip:""`
+	Indices  []byte    `json:"indices" skip:""`
+	Palettes []Palette `json:"palettes" skip:""`
 }
 
 func (t *Texture) IsIndexed() bool {
@@ -46,9 +56,8 @@ func (t *Texture) IsIndexed() bool {
 type Container struct {
 	Offset uint32 `json:"offset" skip:""`
 	Header
-	Texture    Texture  `json:"texture" skip:""`
-	ImageDMA   DMAChain `json:"image_dma" skip:""`
-	PaletteDMA DMAChain `json:"palette_dma" skip:""`
+	Textures []Texture `json:"textures" skip:""`
+	ImageDMA DMAChain  `json:"image_dma" skip:""`
 }
 
 type DecodedTexture struct {
@@ -62,8 +71,8 @@ type DecodedTexture struct {
 
 func New() *Container {
 	return &Container{
-		ImageDMA:   DMAChain{Transfers: []DMATransfer{}},
-		PaletteDMA: DMAChain{Transfers: []DMATransfer{}},
+		Textures: []Texture{},
+		ImageDMA: DMAChain{Transfers: []DMATransfer{}},
 	}
 }
 
@@ -92,16 +101,62 @@ func (c *Container) unmarshal(stream io.ReadSeeker) error {
 	if err := ValidateHeader(parsed.Header, streamSize-baseOffset); err != nil {
 		return err
 	}
-	if err := unmarshalAt(stream, baseOffset+HeaderSize, &parsed.Texture); err != nil {
-		return fmt.Errorf("texture descriptor: %w", err)
+
+	descriptorOffset := baseOffset + HeaderSize
+	paletteTotal := uint64(0)
+	paletteCounts := make([]int, 0, parsed.TextureTotal)
+	for i := 0; i < int(parsed.TextureTotal); i++ {
+		link := TextureLink{Index: uint32(i), PaletteTotal: parsed.PaletteTotal}
+		if i > 0 {
+			if err := unmarshalAt(stream, descriptorOffset, &link); err != nil {
+				return fmt.Errorf("texture link %d: %w", i, err)
+			}
+			descriptorOffset += TextureLinkSize
+		}
+		if link.PaletteTotal == 0 {
+			return fmt.Errorf("texture %d has no palettes", i)
+		}
+		if descriptorOffset+DescriptorSize > baseOffset+uint64(parsed.ImageDMAOffset) {
+			return fmt.Errorf(
+				"texture descriptor %d ends at %#x, after image DMA offset %#x",
+				i,
+				descriptorOffset+DescriptorSize-baseOffset,
+				parsed.ImageDMAOffset,
+			)
+		}
+
+		var texture Texture
+		if err := unmarshalAt(stream, descriptorOffset, &texture); err != nil {
+			return fmt.Errorf("texture descriptor %d: %w", i, err)
+		}
+		descriptorOffset += DescriptorSize
+		if texture.Reserved != 0 {
+			return fmt.Errorf(
+				"%w: texture %d reserved field is %#x",
+				ErrUnsupportedT32,
+				i,
+				texture.Reserved,
+			)
+		}
+		texture.GSTex0 = DecodeGSTex0(texture.GSTex0Raw)
+		texture.GSTex1 = DecodeGSTex1(texture.GSTex1Raw)
+		if err := ValidateTexture(texture); err != nil {
+			return fmt.Errorf("texture %d: %w", i, err)
+		}
+		texture.Index = link.Index
+		texture.Width = texture.GSTex0.Width()
+		texture.Height = texture.GSTex0.Height()
+		texture.Palettes = make([]Palette, 0, link.PaletteTotal)
+		parsed.Textures = append(parsed.Textures, texture)
+		paletteCounts = append(paletteCounts, int(link.PaletteTotal))
+		paletteTotal += uint64(link.PaletteTotal)
 	}
-	if parsed.Texture.Reserved != 0 {
-		return fmt.Errorf("%w: texture reserved field is %#x", ErrUnsupportedT32, parsed.Texture.Reserved)
-	}
-	parsed.Texture.GSTex0 = DecodeGSTex0(parsed.Texture.GSTex0Raw)
-	parsed.Texture.GSTex1 = DecodeGSTex1(parsed.Texture.GSTex1Raw)
-	if err := ValidateTexture(parsed.Texture); err != nil {
-		return err
+	if paletteTotal != uint64(parsed.PalettePacketTotal) {
+		return fmt.Errorf(
+			"texture palette counts total %d, but header contains %d palette packets",
+			paletteTotal,
+			parsed.PalettePacketTotal,
+		)
 	}
 
 	parsed.ImageDMA, err = ReadDMAChain(
@@ -115,7 +170,7 @@ func (c *Container) unmarshal(stream io.ReadSeeker) error {
 	if err != nil {
 		return err
 	}
-	parsed.PaletteDMA, err = ReadDMAChain(
+	paletteDMA, err := ReadDMAChain(
 		stream,
 		streamSize,
 		baseOffset,
@@ -132,16 +187,19 @@ func (c *Container) unmarshal(stream io.ReadSeeker) error {
 			return err
 		}
 	}
-	for i := range parsed.PaletteDMA.Transfers {
-		if err := ValidateUpload(parsed.PaletteDMA.Transfers[i], "palette", i); err != nil {
+	for i := range paletteDMA.Transfers {
+		if err := ValidateUpload(paletteDMA.Transfers[i], "palette", i); err != nil {
 			return err
+		}
+		if len(paletteDMA.Transfers[i].Data) < 256*4 {
+			return fmt.Errorf("palette DMA transfer %d has %#x bytes, need %#x", i, len(paletteDMA.Transfers[i].Data), 256*4)
 		}
 	}
 
 	firstImage := parsed.ImageDMA.Transfers[0].Upload
 	if firstImage.Width != parsed.ImageUploadWidth || firstImage.Height != parsed.ImageUploadHeight {
 		return fmt.Errorf(
-			"%w: header image upload is %dx%d but GIF upload is %dx%d",
+			"%w: header image upload is %dx%d but first GIF upload is %dx%d",
 			ErrUnsupportedT32,
 			parsed.ImageUploadWidth,
 			parsed.ImageUploadHeight,
@@ -150,68 +208,45 @@ func (c *Container) unmarshal(stream io.ReadSeeker) error {
 		)
 	}
 
-	paletteIndex := int(parsed.Texture.GSTex0.CBP)
-	if paletteIndex >= len(parsed.PaletteDMA.Transfers) {
-		return fmt.Errorf(
-			"texture CLUT packet %d is outside %d palette transfers",
-			paletteIndex,
-			len(parsed.PaletteDMA.Transfers),
-		)
+	packetIndex := 0
+	for textureIndex := range parsed.Textures {
+		texture := &parsed.Textures[textureIndex]
+		paletteCount := paletteCounts[textureIndex]
+		for paletteIndex := 0; paletteIndex < paletteCount; paletteIndex++ {
+			transfer := &paletteDMA.Transfers[packetIndex]
+			if paletteIndex == 0 && transfer.Upload.DestinationBase != texture.GSTex0.CBP {
+				return fmt.Errorf(
+					"texture %d CLUT base is %#x but its first palette uploads to %#x",
+					textureIndex,
+					texture.GSTex0.CBP,
+					transfer.Upload.DestinationBase,
+				)
+			}
+			fullPalette := DecodeCSM1RGBA32(transfer.Data)
+			colors := fullPalette
+			if texture.GSTex0.PSM == PSMT4 {
+				base := int(texture.GSTex0.CSA&0x0f) * 16
+				colors = append([]RGBA(nil), fullPalette[base:base+16]...)
+			} else {
+				colors = append([]RGBA(nil), fullPalette...)
+			}
+			texture.Palettes = append(texture.Palettes, Palette{Colors: colors})
+			packetIndex++
+		}
 	}
 
+	if err := parsed.decodeAllIndices(); err != nil {
+		return err
+	}
 	*c = *parsed
 	return nil
 }
 
-func (c *Container) DecodeTexture() (*DecodedTexture, error) {
-	if c == nil {
-		return nil, ErrContainerIsNil
-	}
-	indices, err := c.PixelIndices()
-	if err != nil {
-		return nil, err
-	}
-	palette, err := c.ColorPalette()
-	if err != nil {
-		return nil, err
-	}
-
-	pixels := make([]RGBA, len(indices))
-	for i, index := range indices {
-		if int(index) >= len(palette) {
-			return nil, fmt.Errorf(
-				"pixel %d uses palette index %d outside %d entries",
-				i,
-				index,
-				len(palette),
-			)
-		}
-		pixels[i] = palette[index]
-	}
-
-	return &DecodedTexture{
-		Width:   c.Texture.GSTex0.Width(),
-		Height:  c.Texture.GSTex0.Height(),
-		Format:  c.Texture.GSTex0.PSM,
-		Indices: indices,
-		Palette: palette,
-		Pixels:  pixels,
-	}, nil
-}
-
-func (c *Container) PixelIndices() (indices []byte, err error) {
-	if c == nil {
-		return nil, ErrContainerIsNil
-	}
-	if !c.Texture.IsIndexed() {
-		return nil, ErrNotIndexed
-	}
-
+func (c *Container) decodeAllIndices() (err error) {
 	gsMutex.Lock()
 	defer gsMutex.Unlock()
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			indices = nil
 			err = fmt.Errorf("graphicsynthesizer memory access: %v", recovered)
 		}
 	}()
@@ -231,69 +266,108 @@ func (c *Container) PixelIndices() (indices []byte, err error) {
 		)
 	}
 
-	width := c.Texture.GSTex0.Width()
-	height := c.Texture.GSTex0.Height()
-	pixelTotal := width * height
-	tbw := int(c.Texture.GSTex0.TBW)
-
-	switch c.Texture.GSTex0.PSM {
-	case PSMT8:
-		indices = make([]byte, pixelTotal)
-		graphicsynthesizer.ReadTexPSMT8(
-			int(c.Texture.GSTex0.TBP0), tbw, 0, 0, width, height, indices,
-		)
-		return indices, nil
-
-	case PSMT4:
-		packed := make([]byte, (pixelTotal+1)/2)
-		graphicsynthesizer.ReadTexPSMT4(
-			int(c.Texture.GSTex0.TBP0), tbw, 0, 0, width, height, packed,
-		)
-		indices = make([]byte, pixelTotal)
-		for i := range indices {
-			if i&1 == 0 {
-				indices[i] = packed[i/2] & 0x0f
-			} else {
-				indices[i] = packed[i/2] >> 4
-			}
+	for i := range c.Textures {
+		texture := &c.Textures[i]
+		pixelTotal := texture.Width * texture.Height
+		switch texture.GSTex0.PSM {
+		case PSMT8:
+			texture.Indices = make([]byte, pixelTotal)
+			graphicsynthesizer.ReadTexPSMT8(
+				int(texture.GSTex0.TBP0),
+				int(texture.GSTex0.TBW),
+				0,
+				0,
+				texture.Width,
+				texture.Height,
+				texture.Indices,
+			)
+		case PSMT4:
+			packed := make([]byte, (pixelTotal+1)/2)
+			graphicsynthesizer.ReadTexPSMT4(
+				int(texture.GSTex0.TBP0),
+				int(texture.GSTex0.TBW),
+				0,
+				0,
+				texture.Width,
+				texture.Height,
+				packed,
+			)
+			texture.Indices = unpack4(packed, pixelTotal)
+		default:
+			return fmt.Errorf("texture %d: %w", i, ErrNotIndexed)
 		}
-		return indices, nil
-
-	default:
-		return nil, ErrNotIndexed
 	}
+	return nil
 }
 
-func (c *Container) ColorPalette() ([]RGBA, error) {
+func (c *Container) DecodeTexture(textureIndex, paletteIndex int) (*DecodedTexture, error) {
+	texture, palette, err := c.textureAndPalette(textureIndex, paletteIndex)
+	if err != nil {
+		return nil, err
+	}
+	pixels := make([]RGBA, len(texture.Indices))
+	for i, index := range texture.Indices {
+		if int(index) >= len(palette.Colors) {
+			return nil, fmt.Errorf(
+				"texture %d pixel %d uses palette index %d outside %d entries",
+				textureIndex,
+				i,
+				index,
+				len(palette.Colors),
+			)
+		}
+		pixels[i] = palette.Colors[index]
+	}
+	return &DecodedTexture{
+		Width:   texture.Width,
+		Height:  texture.Height,
+		Format:  texture.GSTex0.PSM,
+		Indices: append([]byte(nil), texture.Indices...),
+		Palette: append([]RGBA(nil), palette.Colors...),
+		Pixels:  pixels,
+	}, nil
+}
+
+func (c *Container) PixelIndices(textureIndex int) ([]byte, error) {
+	texture, err := c.textureAt(textureIndex)
+	if err != nil {
+		return nil, err
+	}
+	return append([]byte(nil), texture.Indices...), nil
+}
+
+func (c *Container) ColorPalette(textureIndex, paletteIndex int) ([]RGBA, error) {
+	_, palette, err := c.textureAndPalette(textureIndex, paletteIndex)
+	if err != nil {
+		return nil, err
+	}
+	return append([]RGBA(nil), palette.Colors...), nil
+}
+
+func (c *Container) textureAt(textureIndex int) (*Texture, error) {
 	if c == nil {
 		return nil, ErrContainerIsNil
 	}
-	if !c.Texture.IsIndexed() {
-		return nil, ErrNotIndexed
+	if textureIndex < 0 || textureIndex >= len(c.Textures) {
+		return nil, fmt.Errorf("texture index %d is outside %d textures", textureIndex, len(c.Textures))
 	}
+	return &c.Textures[textureIndex], nil
+}
 
-	packetIndex := int(c.Texture.GSTex0.CBP)
-	if packetIndex < 0 || packetIndex >= len(c.PaletteDMA.Transfers) {
-		return nil, fmt.Errorf(
-			"CLUT packet %d is outside %d palette transfers",
-			packetIndex,
-			len(c.PaletteDMA.Transfers),
+func (c *Container) textureAndPalette(textureIndex, paletteIndex int) (*Texture, *Palette, error) {
+	texture, err := c.textureAt(textureIndex)
+	if err != nil {
+		return nil, nil, err
+	}
+	if paletteIndex < 0 || paletteIndex >= len(texture.Palettes) {
+		return nil, nil, fmt.Errorf(
+			"palette index %d is outside %d palettes at texture %d",
+			paletteIndex,
+			len(texture.Palettes),
+			textureIndex,
 		)
 	}
-	payload := c.PaletteDMA.Transfers[packetIndex].Data
-	if len(payload) < 256*4 {
-		return nil, fmt.Errorf("palette payload has %#x bytes, need %#x", len(payload), 256*4)
-	}
-
-	fullPalette := DecodeCSM1RGBA32(payload)
-	if c.Texture.GSTex0.PSM == PSMT8 {
-		return fullPalette, nil
-	}
-
-	base := int(c.Texture.GSTex0.CSA&0x0f) * 16
-	palette := make([]RGBA, 16)
-	copy(palette, fullPalette[base:base+16])
-	return palette, nil
+	return texture, &texture.Palettes[paletteIndex], nil
 }
 
 func FromStreamWithOffset(t32 *Container, stream io.ReadSeeker, offset uint32) error {
@@ -304,71 +378,58 @@ func FromStreamWithOffset(t32 *Container, stream io.ReadSeeker, offset uint32) e
 	return t32.unmarshal(stream)
 }
 
-func FromStream(t32 *Container, stream io.ReadSeeker) error {
-	return FromStreamWithOffset(t32, stream, 0)
-}
-
-func FromPathWithOffset(t32 *Container, filePath string, offset uint32) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return FromStreamWithOffset(t32, file, 0)
-}
-
-func FromPath(c *Container, filePath string) error {
-	return FromPathWithOffset(c, filePath, 0)
-}
-
-func DecodeImage(stream io.ReadSeeker) (image.Image, error) {
+func DecodeImage(
+	stream io.ReadSeeker,
+	offset uint32,
+	textureIndex int,
+	paletteIndex int,
+) (image.Image, error) {
 	t32 := New()
-	if err := FromStream(t32, stream); err != nil {
+	if err := FromStreamWithOffset(t32, stream, offset); err != nil {
 		return nil, err
 	}
-	return T32ToImage(t32)
+	return T32ToImage(t32, textureIndex, paletteIndex)
 }
 
-func DecodePalettedImage(stream io.ReadSeeker) (*image.Paletted, error) {
+func DecodePalettedImage(
+	stream io.ReadSeeker,
+	offset uint32,
+	textureIndex int,
+	paletteIndex int,
+) (*image.Paletted, error) {
 	t32 := New()
-	if err := FromStream(t32, stream); err != nil {
+	if err := FromStreamWithOffset(t32, stream, offset); err != nil {
 		return nil, err
 	}
-	return T32ToPalettedImage(t32)
+	return t32.PaletteAtImage(textureIndex, paletteIndex)
 }
 
-func T32ToImage(t32 *Container) (image.Image, error) {
+func T32ToImage(t32 *Container, textureIndex, paletteIndex int) (image.Image, error) {
 	if t32 == nil {
 		return nil, ErrContainerIsNil
 	}
-	decoded, err := t32.DecodeTexture()
+	decoded, err := t32.DecodeTexture(textureIndex, paletteIndex)
 	if err != nil {
 		return nil, err
 	}
 	return decoded.Image(), nil
 }
 
-func T32ToPalettedImage(t32 *Container) (*image.Paletted, error) {
-	if t32 == nil {
-		return nil, ErrContainerIsNil
-	}
-	decoded, err := t32.DecodeTexture()
-	if err != nil {
-		return nil, err
-	}
-	return decoded.PalettedImage(), nil
-}
-
 func ValidateHeader(header Header, dataSize uint64) error {
-	if header.TextureTotal != 1 {
-		return fmt.Errorf("%w: texture total is %d, expected 1", ErrUnsupportedT32, header.TextureTotal)
+	if header.TextureTotal == 0 {
+		return fmt.Errorf("%w: texture total is zero", ErrUnsupportedT32)
 	}
-	if header.ImageDMAOffset != ImageDMAOffset {
+	descriptorSize := uint64(DescriptorSize)
+	if header.TextureTotal > 1 {
+		descriptorSize += uint64(header.TextureTotal-1) * (TextureLinkSize + DescriptorSize)
+	}
+	minimumImageDMAOffset := uint64(HeaderSize) + descriptorSize
+	if uint64(header.ImageDMAOffset) < minimumImageDMAOffset {
 		return fmt.Errorf(
-			"%w: image DMA offset is %#x, expected compact descriptor end %#x",
+			"%w: image DMA offset %#x overlaps texture descriptors ending at %#x",
 			ErrUnsupportedT32,
 			header.ImageDMAOffset,
-			ImageDMAOffset,
+			minimumImageDMAOffset,
 		)
 	}
 	if header.ImagePacketTotal == 0 {
@@ -427,12 +488,12 @@ func ValidateTexture(texture Texture) error {
 	return nil
 }
 
-func (self *DecodedTexture) Image() image.Image {
-	if self == nil {
+func (d *DecodedTexture) Image() image.Image {
+	if d == nil {
 		return nil
 	}
-	img := image.NewNRGBA(image.Rect(0, 0, self.Width, self.Height))
-	for i, pixel := range self.Pixels {
+	img := image.NewNRGBA(image.Rect(0, 0, d.Width, d.Height))
+	for i, pixel := range d.Pixels {
 		position := i * 4
 		img.Pix[position+0] = pixel.R
 		img.Pix[position+1] = pixel.G
@@ -442,16 +503,16 @@ func (self *DecodedTexture) Image() image.Image {
 	return img
 }
 
-func (self *DecodedTexture) PalettedImage() *image.Paletted {
-	if self == nil {
+func (d *DecodedTexture) PalettedImage() *image.Paletted {
+	if d == nil {
 		return nil
 	}
-	palette := make(color.Palette, len(self.Palette))
-	for i, entry := range self.Palette {
+	palette := make(color.Palette, len(d.Palette))
+	for i, entry := range d.Palette {
 		palette[i] = color.NRGBA{R: entry.R, G: entry.G, B: entry.B, A: entry.A}
 	}
-	img := image.NewPaletted(image.Rect(0, 0, self.Width, self.Height), palette)
-	copy(img.Pix, self.Indices)
+	img := image.NewPaletted(image.Rect(0, 0, d.Width, d.Height), palette)
+	copy(img.Pix, d.Indices)
 	return img
 }
 
@@ -499,4 +560,16 @@ func DecodeCSM1RGBA32(payload []byte) []RGBA {
 		}
 	}
 	return palette
+}
+
+func unpack4(packed []byte, pixelTotal int) []byte {
+	indices := make([]byte, pixelTotal)
+	for i := range indices {
+		if i&1 == 0 {
+			indices[i] = packed[i/2] & 0x0f
+		} else {
+			indices[i] = packed[i/2] >> 4
+		}
+	}
+	return indices
 }

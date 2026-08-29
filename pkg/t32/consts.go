@@ -8,6 +8,7 @@ import (
 const (
 	HeaderSize       = 0x20
 	DescriptorSize   = 0x10
+	TextureLinkSize  = 0x08
 	ImageDMAOffset   = HeaderSize + DescriptorSize
 	DMATagSize       = 0x10
 	UploadPacketSize = 0x60
