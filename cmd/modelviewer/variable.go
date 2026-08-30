@@ -9,8 +9,8 @@ import (
 var datPath = ""
 
 var (
-	width  float32 = 1000
-	height float32 = 900
+	width  float32 = 800
+	height float32 = 600
 )
 
 var camera = rl.NewCamera3D(
