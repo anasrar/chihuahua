@@ -224,8 +224,12 @@ func configureTexture(texture *Texture) error {
 	if limit == 256 {
 		psm = PSMT8
 	}
-	tbw := (texture.Width + 63) / 64
-	if tbw < 2 {
+	tbw := texture.Width / 64
+	pageHeight := 128
+	if psm == PSMT8 {
+		pageHeight = 64
+	}
+	if texture.Height > pageHeight && tbw < 2 {
 		tbw = 2
 	}
 	if tbw > 0x3f {

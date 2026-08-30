@@ -17,6 +17,13 @@ type paletteLayout struct {
 	Payload       []byte
 }
 
+var psmt8BlockLayout = [32]int{
+	0, 1, 4, 5, 16, 17, 20, 21,
+	2, 3, 6, 7, 18, 19, 22, 23,
+	8, 9, 12, 13, 24, 25, 28, 29,
+	10, 11, 14, 15, 26, 27, 30, 31,
+}
+
 func (c *Container) Write(output io.Writer) error {
 	if c == nil {
 		return ErrContainerIsNil
@@ -158,6 +165,7 @@ func (c *Container) preparePayloads() (height int, imagePayload []byte, paletteP
 		textureBase += allocation
 		paletteBase += len(texture.Palettes)
 	}
+	textureBase = int(alignUp(uint64(textureBase), 32))
 	if textureBase == 0 || textureBase*16 > 0x7fff {
 		return 0, nil, nil, fmt.Errorf(
 			"combined GS image upload height %d exceeds one T32 GIF packet",
@@ -235,12 +243,42 @@ func (c *Container) buildImagePayload(height int) (payload []byte, err error) {
 }
 
 func textureAllocationUnits(texture *Texture) int {
-	pagesX := (texture.Width + 127) / 128
-	pagesY := (texture.Height + 127) / 128
+	pageWidth := 128
+	pageHeight := 128
+	blockWidth := 32
+	blockHeight := 16
+	blocksPerPageRow := 4
+	blockLayout := graphicsynthesizer.Block4[:]
 	if texture.GSTex0.PSM == PSMT8 {
-		pagesY = (texture.Height + 63) / 64
+		pageHeight = 64
+		blockWidth = 16
+		blocksPerPageRow = 8
+		blockLayout = psmt8BlockLayout[:]
 	}
-	return pagesX * pagesY * 32
+
+	pagesX := (texture.Width + pageWidth - 1) / pageWidth
+	pagesY := (texture.Height + pageHeight - 1) / pageHeight
+	pageStride := int(texture.GSTex0.TBW) >> 1
+	if pageStride < pagesX {
+		pageStride = pagesX
+	}
+	lastPageX := pagesX - 1
+	lastPageY := pagesY - 1
+	lastWidth := texture.Width - lastPageX*pageWidth
+	lastHeight := texture.Height - lastPageY*pageHeight
+	blocksX := (lastWidth + blockWidth - 1) / blockWidth
+	blocksY := (lastHeight + blockHeight - 1) / blockHeight
+	lastBlock := 0
+	for blockY := 0; blockY < blocksY; blockY++ {
+		for blockX := 0; blockX < blocksX; blockX++ {
+			block := blockLayout[blockX+blockY*blocksPerPageRow]
+			if block > lastBlock {
+				lastBlock = block
+			}
+		}
+	}
+	lastPage := lastPageX + lastPageY*pageStride
+	return lastPage*32 + lastBlock + 1
 }
 
 func pack4(indices []byte) []byte {

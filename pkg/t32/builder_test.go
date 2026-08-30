@@ -121,3 +121,59 @@ func TestAddPaletteDimensionMismatch(t *testing.T) {
 		t.Fatal("accepted a palette image with different dimensions")
 	}
 }
+
+func TestCompactPSMT4TexturesRoundTrip(t *testing.T) {
+	dimensions := [][2]int{
+		{128, 128},
+		{64, 64},
+		{128, 64},
+		{64, 32},
+		{128, 256},
+		{128, 64},
+		{128, 128},
+		{64, 64},
+		{128, 256},
+		{128, 64},
+		{64, 64},
+		{32, 32},
+		{64, 64},
+		{32, 32},
+		{128, 64},
+		{64, 32},
+	}
+	expectedBases := []uint16{0, 32, 40, 56, 60, 124, 140, 172, 180, 244, 260, 268, 270, 278, 280, 296}
+	expectedWidths := []uint8{2, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 0, 1, 0, 2, 1}
+
+	container := New()
+	for i, size := range dimensions {
+		if _, err := container.AddImage(testPaletted(size[0], size[1], 16, uint8(i))); err != nil {
+			t.Fatalf("add image %d: %v", i, err)
+		}
+	}
+
+	var encoded bytes.Buffer
+	if err := container.Write(&encoded); err != nil {
+		t.Fatal(err)
+	}
+	if container.ImageUploadWidth != 64 || container.ImageUploadHeight != 320 {
+		t.Fatalf("image upload is %dx%d, expected 64x320", container.ImageUploadWidth, container.ImageUploadHeight)
+	}
+	for i := range container.Textures {
+		if container.Textures[i].GSTex0.TBP0 != expectedBases[i] {
+			t.Fatalf("texture %d base is %d, expected %d", i, container.Textures[i].GSTex0.TBP0, expectedBases[i])
+		}
+		if container.Textures[i].GSTex0.TBW != expectedWidths[i] {
+			t.Fatalf("texture %d buffer width is %d, expected %d", i, container.Textures[i].GSTex0.TBW, expectedWidths[i])
+		}
+	}
+
+	decoded := New()
+	if err := FromStreamWithOffset(decoded, bytes.NewReader(encoded.Bytes()), 0); err != nil {
+		t.Fatal(err)
+	}
+	for i := range decoded.Textures {
+		if !bytes.Equal(decoded.Textures[i].Indices, container.Textures[i].Indices) {
+			t.Fatalf("texture %d indices differ after round trip", i)
+		}
+	}
+}

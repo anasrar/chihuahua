@@ -482,9 +482,6 @@ func ValidateTexture(texture Texture) error {
 			texture.GSTex0.TH,
 		)
 	}
-	if texture.GSTex0.TBW == 0 {
-		return errors.New("texture buffer width is zero")
-	}
 	return nil
 }
 
