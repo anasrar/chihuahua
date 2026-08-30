@@ -86,7 +86,7 @@ jobs:
           echo "Windows: scrviewer"
           go build -v -o output/t32viewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/t32viewer/entry.go cmd/t32viewer/main.go cmd/t32viewer/mode.go cmd/t32viewer/variable.go
           echo "Windows: t32viewer"
-          go build -v -o output/t32unpack_win.exe --ldflags="-extldflags=-static -s -w" cmd/t32unpack/main.go cmd/t32unpack/unpack.go cmd/t32unpack/variable.go
+          go build -v -o output/t32unpack_win.exe --ldflags="-extldflags=-static -s -w" cmd/t32unpack/main.go cmd/t32unpack/unpack.go cmd/t32unpack/variable.go cmd/t32unpack/entry.go cmd/t32unpack/gui.go
           echo "Windows: t32unpack"
           go build -v -o output/timviewer_win.exe --ldflags="-extldflags=-static -s -w" cmd/timviewer/entry.go cmd/timviewer/main.go cmd/timviewer/mode.go cmd/timviewer/variable.go
           echo "Windows: timviewer"
