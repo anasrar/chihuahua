@@ -32,5 +32,7 @@ func main() {
 		); err != nil {
 			log.Fatalln(err)
 		}
+	} else {
+		gui()
 	}
 }
