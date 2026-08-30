@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/png"
 	"log"
+	"os"
 
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/anasrar/chihuahua/pkg/bone"
@@ -12,6 +13,8 @@ import (
 	"github.com/anasrar/chihuahua/pkg/mot"
 	rlig "github.com/anasrar/chihuahua/pkg/raylib_imgui"
 	"github.com/anasrar/chihuahua/pkg/scr"
+	"github.com/anasrar/chihuahua/pkg/t32"
+	"github.com/anasrar/chihuahua/pkg/tim2"
 	"github.com/anasrar/chihuahua/pkg/tim3"
 	"github.com/anasrar/chihuahua/pkg/tm3"
 	"github.com/anasrar/chihuahua/pkg/utils"
@@ -19,10 +22,10 @@ import (
 )
 
 func loadModel(index int) error {
-	tm3Entry := tm3Entries[index]
-	mdEntry := mdEntries[index]
 
-	{
+	if len(tm3Entries) != 0 {
+		tm3Entry := tm3Entries[index]
+
 		tm := tm3.New()
 		if err := tm3.FromPathWithOffsetSize(tm, tm3Entry.Source, tm3Entry.Offset, tm3Entry.Size); err != nil {
 			return err
@@ -60,6 +63,62 @@ func loadModel(index int) error {
 		textureShift = 0
 	}
 
+	if len(t32Entries) != 0 {
+		t32Entry := t32Entries[index]
+
+		file, err := os.Open(t32Entry.Source)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		t := t32.New()
+		log.Print(t32Entry.Source, t32Entry.Offset)
+		if err := t32.FromStreamWithOffset(t, file, t32Entry.Offset); err != nil {
+			return err
+		}
+
+		for _, index := range textureIndices {
+			rl.UnloadTexture(textures[index].Texture)
+			textures[index].Ref.Destroy()
+			delete(textures, index)
+		}
+
+		textureIndices = []int{}
+		textureTotal = 0
+
+		for textureIndex, texture := range t.Textures {
+			if !texture.IsIndexed() {
+				continue
+			}
+
+			for paletteIndex := range texture.Palettes {
+				decoded, err := t.DecodeTexture(textureIndex, paletteIndex)
+				if err != nil {
+					return err
+				}
+
+				buf := bytes.NewBuffer([]byte{})
+				if err := png.Encode(buf, decoded.Image()); err != nil {
+					return err
+				}
+
+				img := rl.LoadImageFromMemory(".png", buf.Bytes(), int32(buf.Len()))
+				defer rl.UnloadImage(img)
+
+				texture := rl.LoadTextureFromImage(img)
+				textures[textureTotal] = NewTexture(&tim2.Picture{}, texture)
+
+				textureIndices = append(textureIndices, textureTotal)
+
+				textureTotal += 1
+			}
+		}
+
+		textureShift = 0
+	}
+
+	mdEntry := mdEntries[index]
 	{
 		s := scr.New()
 		if err := scr.FromPathWithOffset(s, mdEntry.Source, mdEntry.Offset); err != nil {
@@ -233,6 +292,7 @@ func drop(filePath string) error {
 	}
 
 	tmpTm3Entries := []*Entry{}
+	tmpT32Entries := []*Entry{}
 	tmpMdEntries := []*Entry{}
 	tmpMotEntries := []*Entry{}
 
@@ -244,6 +304,8 @@ func drop(filePath string) error {
 			tmpMdEntries = append(tmpMdEntries, NewEntry(name, entry))
 		case "TM3":
 			tmpTm3Entries = append(tmpTm3Entries, NewEntry(name, entry))
+		case "T32":
+			tmpT32Entries = append(tmpT32Entries, NewEntry(name, entry))
 		case "MOT":
 			tmpMotEntries = append(tmpMotEntries, NewEntry(name, entry))
 		default:
@@ -256,6 +318,7 @@ func drop(filePath string) error {
 	}
 
 	tm3Entries = tmpTm3Entries
+	t32Entries = tmpT32Entries
 	mdEntries = tmpMdEntries
 	motEntries = tmpMotEntries
 

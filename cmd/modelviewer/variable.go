@@ -22,6 +22,7 @@ var camera = rl.NewCamera3D(
 )
 
 var tm3Entries = []*Entry{}
+var t32Entries = []*Entry{}
 var textureDefault rl.Texture2D
 var textures = map[int]*Texture{}
 var textureIndices = []int{}
