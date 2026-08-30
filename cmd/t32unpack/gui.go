@@ -30,6 +30,7 @@ func drop(filePath string) error {
 
 	for _, entry := range entries {
 		rl.UnloadTexture(entry.Texture)
+		entry.TextureRef.Destroy()
 	}
 
 	entries = []*Entry{}
@@ -302,4 +303,8 @@ func gui() {
 		rl.EndDrawing()
 	}
 
+	for _, entry := range entries {
+		rl.UnloadTexture(entry.Texture)
+		entry.TextureRef.Destroy()
+	}
 }
