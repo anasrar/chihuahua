@@ -80,6 +80,7 @@ func drop(filePath string) error {
 
 		for _, entry := range entries {
 			rl.UnloadTexture(entry.Texture)
+			entry.TextureRef.Destroy()
 		}
 
 		buf := bytes.NewBuffer([]byte{})
@@ -120,6 +121,7 @@ func drop(filePath string) error {
 
 		for _, entry := range entries {
 			rl.UnloadTexture(entry.Texture)
+			entry.TextureRef.Destroy()
 		}
 
 		entries = []*Entry{}
