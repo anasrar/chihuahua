@@ -76,7 +76,7 @@ func unpack(
 				return err
 			}
 
-			if err := utils.WritePNG(outputPath, decoded.Image()); err != nil {
+			if err := utils.WritePNG(outputPath, decoded.PalettedImage()); err != nil {
 				log.Fatal(err)
 			}
 			onDone(uint32(total), uint32(current), filename)
