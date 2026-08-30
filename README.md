@@ -29,6 +29,7 @@ Windows and Linux executable available to download on [release page](https://git
 | **png2tim**     | Convert PNG to TIM (TIM3 and TIM2), **Note**: see [how to convert PNG to indexed mode](#png-indexed-mode). | `yes` | `yes` | [`tim/frompng`](https://anasrar.github.io/chihuahua/tim/frompng) |
 | **roomviewer**  | Room viewer for rXXX.dat file, drag and drop `rXXX.dat` file, support export as GLTF.                      | `no`  | `yes` |                              `todo`                              |
 | **scrviewer**   | SCR viewer for view SCR and MD file, drag and drop SCR, MD, and TM3 file, support export as GLTF.          | `no`  | `yes` |                              `todo`                              |
+| **t32pack**     | Pack PNG container as T32, **Note**: see [how to convert PNG to indexed mode](#png-indexed-mode).          | `yes` | `yes` |                              `todo`                              |
 | **t32unpack**   | Unpack T32 container as indexed PNG, support single export as PNG via GUI.                                 | `yes` | `yes` |                              `todo`                              |
 | **timviewer**   | TIM viewer for view TIM2 (`orivia_`), TIM3, TM3 image texture, support export as PNG.                      | `no`  | `yes` |  [`tim/viewer`](https://anasrar.github.io/chihuahua/tim/viewer)  |
 | **tm3pack**     | Pack TIM3 container as TM3.                                                                                | `yes` | `yes` |                              `todo`                              |
