@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/anasrar/binarium v0.2.0
+	github.com/anasrar/binarium v0.3.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/jupiterrider/ffi v0.7.0 // indirect
