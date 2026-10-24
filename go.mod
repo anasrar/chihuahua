@@ -6,7 +6,13 @@ require (
 	github.com/AllenDang/cimgui-go v1.6.0
 	github.com/gen2brain/raylib-go/raylib v0.60.1
 	github.com/qmuntal/gltf v0.27.0
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
+)
+
+require (
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 )
 
 require (
