@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/anasrar/chihuahua/next/pkg/afs"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +14,9 @@ var (
 	PathAFS string
 	Offset  int64
 	Length  int64
+
+	IsRelativeOffset bool
+	Filter           string
 )
 
 var cmd = &cobra.Command{
@@ -25,10 +29,22 @@ var cmd = &cobra.Command{
 		}
 
 		for _, entry := range afsContainer.Entries {
+			name := string(bytes.Trim(entry.Description.Name[:], "\x00"))
+			if Filter != "" {
+				if !fuzzy.Match(Filter, name) {
+					continue
+				}
+			}
+
+			offset := entry.Offset
+			if !IsRelativeOffset {
+				offset = offset + uint32(Offset)
+			}
+
 			fmt.Printf(
 				"F %-32s  offset=0x%X length=%d",
-				bytes.Trim(entry.Description.Name[:], "\x00"),
-				entry.Offset,
+				name,
+				offset,
 				entry.Length,
 			)
 			fmt.Println()
@@ -43,6 +59,9 @@ func init() {
 	cmd.Flags().Int64VarP(&Offset, "offset", "s", 0, "offset to AFS")
 	cmd.Flags().Int64VarP(&Length, "length", "l", 0, "length of AFS")
 	cmd.MarkFlagsRequiredTogether("offset", "length")
+
+	cmd.Flags().BoolVarP(&IsRelativeOffset, "relative", "r", false, "show offset as relative offset")
+	cmd.Flags().StringVarP(&Filter, "filter", "f", "", "filter list content of AFS")
 }
 
 func main() {
