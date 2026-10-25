@@ -17,11 +17,14 @@ var (
 
 	IsRelativeOffset bool
 	Filter           string
+
+	Version string
 )
 
 var cmd = &cobra.Command{
-	Use:   "afsls",
-	Short: "List Content From AFS",
+	Use:     "afsls",
+	Short:   "List Content From AFS",
+	Version: Version,
 	Run: func(cmd *cobra.Command, args []string) {
 		afsContainer, err := afs.FromPath(PathAFS, Offset, Length)
 		if err != nil {

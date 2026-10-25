@@ -13,6 +13,8 @@ var (
 	PathISO string
 	Offset  int64
 	Length  int64
+
+	Version string
 )
 
 func walk(n *iso.Node, depth int) {
@@ -40,8 +42,9 @@ func walk(n *iso.Node, depth int) {
 }
 
 var cmd = &cobra.Command{
-	Use:   "isols",
-	Short: "List Content From PS2 ISO",
+	Use:     "isols",
+	Short:   "List Content From PS2 ISO",
+	Version: Version,
 	Run: func(cmd *cobra.Command, args []string) {
 		isoContainer, err := iso.FromPath(PathISO, Offset, Length)
 		if err != nil {

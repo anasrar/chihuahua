@@ -17,11 +17,14 @@ var (
 
 	IsRelativeOffset bool
 	Filter           string
+
+	Version string
 )
 
 var cmd = &cobra.Command{
-	Use:   "datls",
-	Short: "List Content From DAT",
+	Use:     "datls",
+	Short:   "List Content From DAT",
+	Version: Version,
 	Run: func(cmd *cobra.Command, args []string) {
 		datContainer, err := dat.FromPath(PathDAT, Offset, Length)
 		if err != nil {
