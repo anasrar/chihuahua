@@ -45,7 +45,7 @@ func unmarshal(source string, stream io.ReadSeeker, offset int64, length int64) 
 			continue
 		}
 
-		entry.Type = string(container.Header.Types[i])
+		entry.Type = string(container.Header.Types[i][:])
 		entry.Offset = entryOffset
 		entry.AbsoluteOffset = uint32(offset) + entryOffset
 	}
@@ -73,7 +73,7 @@ func unmarshal(source string, stream io.ReadSeeker, offset int64, length int64) 
 			)
 		}
 
-		container.Entries[i].Size = end - container.Entries[i].Offset
+		container.Entries[i].Length = end - container.Entries[i].Offset
 	}
 
 	return container, nil
